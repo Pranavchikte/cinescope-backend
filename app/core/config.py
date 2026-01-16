@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # CORS
     ALLOWED_ORIGINS: str
     
+    RESEND_API_KEY: str
+    EMAIL_FROM: str = "onboarding@resend.dev"
+    
     @property
     def allowed_origins_list(self) -> List[str]:
         return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
