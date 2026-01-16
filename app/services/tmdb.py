@@ -53,5 +53,14 @@ class TMDBService:
     
     async def get_tv_details(self, tv_id: int) -> Dict[Any, Any]:
         return await self._make_request(f"/tv/{tv_id}", cache_ttl=86400)
+    
+    async def search_tv(self, query: str) -> Dict[Any, Any]:
+        return await self._make_request("/search/tv", {"query": query}, cache_ttl=3600)
+    
+    async def get_tv_credits(self, tv_id: int) -> Dict[Any, Any]:
+        return await self._make_request(f"/tv/{tv_id}/credits", cache_ttl=86400)
+    
+    async def get_tv_videos(self, tv_id: int) -> Dict[Any, Any]:
+        return await self._make_request(f"/tv/{tv_id}/videos", cache_ttl=86400)
 
 tmdb_service = TMDBService()
