@@ -35,5 +35,33 @@ class EmailService:
         except Exception as e:
             print(f"Email send failed: {e}")
             return False
+    
+    async def send_verification_email(self, to_email: str, verification_token: str) -> bool:
+        """Send email verification link to new user"""
+        verification_link = f"https://www.cinescopes.app/verify-email?token={verification_token}"
+        
+        try:
+            params = {
+                "from": self.from_email,
+                "to": [to_email],
+                "subject": "Verify Your CineScope Email",
+                "html": f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2>Welcome to CineScope!</h2>
+                    <p>Thanks for signing up. Please verify your email to start tracking movies and TV shows.</p>
+                    <a href="{verification_link}" style="display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px; margin: 16px 0;">Verify Email</a>
+                    <p>Or copy this link into your browser:</p>
+                    <p style="color: #6b7280; font-size: 14px;">{verification_link}</p>
+                    <p style="color: #6b7280; font-size: 14px; margin-top: 24px;">This link will expire in 24 hours.</p>
+                    <p style="color: #6b7280; font-size: 14px;">If you didn't create an account, ignore this email.</p>
+                </div>
+                """
+            }
+            
+            resend.Emails.send(params)
+            return True
+        except Exception as e:
+            print(f"Email send failed: {e}")
+            return False
 
 email_service = EmailService()

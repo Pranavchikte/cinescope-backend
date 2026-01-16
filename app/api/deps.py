@@ -33,3 +33,14 @@ async def get_current_user(
         raise credentials_exception
     
     return user
+
+async def get_verified_user(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    """Require user to have verified email"""
+    if not current_user.is_email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please verify your email to access this feature"
+        )
+    return current_user

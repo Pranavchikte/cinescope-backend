@@ -51,3 +51,25 @@ def verify_password_reset_token(token: str) -> Optional[str]:
         return None
     except jwt.JWTError:
         return None
+    
+
+def create_email_verification_token(email: str) -> str:
+    """Create a token for email verification (24 hour expiry)"""
+    to_encode = {"sub": email, "type": "email_verification"}
+    expire = datetime.utcnow() + timedelta(hours=24)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+def verify_email_verification_token(token: str) -> Optional[str]:
+    """Verify email verification token and return email if valid"""
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        email: str = payload.get("sub")
+        token_type: str = payload.get("type")
+        if email is None or token_type != "email_verification":
+            return None
+        return email
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.JWTError:
+        return None

@@ -16,6 +16,7 @@ class UserResponse(BaseModel):
     id: uuid.UUID
     username: str
     email: str
+    is_email_verified: bool
     created_at: datetime
     
     class Config:
