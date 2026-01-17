@@ -139,3 +139,8 @@ async def resend_verification(
         raise HTTPException(status_code=500, detail="Failed to send email")
     
     return {"message": "Verification email sent"}
+
+@router.get("/me", response_model=UserResponse)
+def get_current_user_info(current_user: User = Depends(get_current_user)):
+    """Get current user info"""
+    return current_user
