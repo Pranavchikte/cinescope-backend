@@ -46,14 +46,32 @@ class TMDBService:
     async def get_movie_videos(self, movie_id: int) -> Dict[Any, Any]:
         return await self._make_request(f"/movie/{movie_id}/videos", cache_ttl=86400)
     
+    async def get_movie_watch_providers(self, movie_id: int) -> Dict[Any, Any]:
+        """Get streaming providers for a movie"""
+        return await self._make_request(f"/movie/{movie_id}/watch/providers", cache_ttl=86400)
+    
+    async def get_movie_recommendations(self, movie_id: int, page: int = 1) -> Dict[Any, Any]:
+        """Get TMDB's ML-based movie recommendations"""
+        return await self._make_request(f"/movie/{movie_id}/recommendations", {"page": page}, cache_ttl=86400)
+    
+    async def get_similar_movies(self, movie_id: int, page: int = 1) -> Dict[Any, Any]:
+        """Get movies similar to given movie (based on genres, keywords)"""
+        return await self._make_request(f"/movie/{movie_id}/similar", {"page": page}, cache_ttl=86400)
+    
     async def discover_movies(
         self,
         genre: Optional[str] = None,
         year: Optional[int] = None,
         language: Optional[str] = None,
         country: Optional[str] = None,
+        provider: Optional[str] = None,
         sort_by: str = "popularity.desc",
-        page: int = 1
+        page: int = 1,
+        vote_count_min: int = 100,
+        vote_average_min: Optional[float] = None,
+        vote_average_max: Optional[float] = None,
+        runtime_min: Optional[int] = None,
+        runtime_max: Optional[int] = None,
     ) -> Dict[Any, Any]:
         """
         Discover movies with filters
@@ -61,7 +79,11 @@ class TMDBService:
         year: release year
         language: ISO 639-1 code (e.g. "en", "hi")
         country: ISO 3166-1 code (e.g. "US", "IN")
+        provider: comma-separated provider IDs (e.g. "8,119" for Netflix,Prime Video)
         sort_by: popularity.desc, vote_average.desc, release_date.desc, etc.
+        vote_count_min: minimum number of votes (filters low-quality content)
+        vote_average_min/max: rating range filter
+        runtime_min/max: movie duration in minutes
         """
         params = {
             "sort_by": sort_by,
@@ -76,6 +98,24 @@ class TMDBService:
             params["with_original_language"] = language
         if country:
             params["region"] = country
+        if provider:
+            params["with_watch_providers"] = provider
+            if not country:
+                params["watch_region"] = "IN"
+            else:
+                params["watch_region"] = country
+        
+        # Quality filters
+        if vote_count_min:
+            params["vote_count.gte"] = vote_count_min
+        if vote_average_min:
+            params["vote_average.gte"] = vote_average_min
+        if vote_average_max:
+            params["vote_average.lte"] = vote_average_max
+        if runtime_min:
+            params["with_runtime.gte"] = runtime_min
+        if runtime_max:
+            params["with_runtime.lte"] = runtime_max
         
         return await self._make_request("/discover/movie", params, cache_ttl=3600)
     
@@ -98,14 +138,30 @@ class TMDBService:
     async def get_tv_videos(self, tv_id: int) -> Dict[Any, Any]:
         return await self._make_request(f"/tv/{tv_id}/videos", cache_ttl=86400)
     
+    async def get_tv_watch_providers(self, tv_id: int) -> Dict[Any, Any]:
+        """Get streaming providers for a TV show"""
+        return await self._make_request(f"/tv/{tv_id}/watch/providers", cache_ttl=86400)
+    
+    async def get_tv_recommendations(self, tv_id: int, page: int = 1) -> Dict[Any, Any]:
+        """Get TMDB's ML-based TV recommendations"""
+        return await self._make_request(f"/tv/{tv_id}/recommendations", {"page": page}, cache_ttl=86400)
+    
+    async def get_similar_tv(self, tv_id: int, page: int = 1) -> Dict[Any, Any]:
+        """Get TV shows similar to given show"""
+        return await self._make_request(f"/tv/{tv_id}/similar", {"page": page}, cache_ttl=86400)
+    
     async def discover_tv(
         self,
         genre: Optional[str] = None,
         year: Optional[int] = None,
         language: Optional[str] = None,
         country: Optional[str] = None,
+        provider: Optional[str] = None,
         sort_by: str = "popularity.desc",
-        page: int = 1
+        page: int = 1,
+        vote_count_min: int = 100,
+        vote_average_min: Optional[float] = None,
+        vote_average_max: Optional[float] = None,
     ) -> Dict[Any, Any]:
         """
         Discover TV shows with filters
@@ -113,7 +169,10 @@ class TMDBService:
         year: first air date year
         language: ISO 639-1 code
         country: ISO 3166-1 code
+        provider: comma-separated provider IDs
         sort_by: popularity.desc, vote_average.desc, first_air_date.desc, etc.
+        vote_count_min: minimum number of votes
+        vote_average_min/max: rating range filter
         """
         params = {
             "sort_by": sort_by,
@@ -128,6 +187,20 @@ class TMDBService:
             params["with_original_language"] = language
         if country:
             params["region"] = country
+        if provider:
+            params["with_watch_providers"] = provider
+            if not country:
+                params["watch_region"] = "IN"
+            else:
+                params["watch_region"] = country
+        
+        # Quality filters
+        if vote_count_min:
+            params["vote_count.gte"] = vote_count_min
+        if vote_average_min:
+            params["vote_average.gte"] = vote_average_min
+        if vote_average_max:
+            params["vote_average.lte"] = vote_average_max
         
         return await self._make_request("/discover/tv", params, cache_ttl=3600)
     
@@ -137,5 +210,13 @@ class TMDBService:
     
     async def get_tv_genres(self) -> Dict[Any, Any]:
         return await self._make_request("/genre/tv/list", cache_ttl=86400)
+    
+    # Watch Providers
+    async def get_watch_providers(self, region: str = "IN") -> Dict[Any, Any]:
+        """
+        Get list of available watch providers for a region
+        region: ISO 3166-1 country code (default: IN for India)
+        """
+        return await self._make_request(f"/watch/providers/movie?watch_region={region}", cache_ttl=86400)
 
 tmdb_service = TMDBService()
