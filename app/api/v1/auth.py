@@ -4,10 +4,10 @@ from datetime import datetime
 from app.core.database import get_db
 from app.core.security import verify_password, get_password_hash, create_access_token, create_refresh_token, create_password_reset_token, verify_password_reset_token, create_email_verification_token, verify_email_verification_token
 from app.models.user import User
-from app.schemas.user import UserCreate, UserLogin, UserResponse, ForgotPasswordRequest, ResetPasswordRequest, MessageResponse
+from app.schemas.user import UserCreate, UserLogin, UserResponse, ForgotPasswordRequest, ResetPasswordRequest, MessageResponse, UserProfileUpdate
 from app.schemas.token import Token
 from app.services.email import email_service
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_verified_user
 
 
 router = APIRouter()
@@ -143,4 +143,24 @@ async def resend_verification(
 @router.get("/me", response_model=UserResponse)
 def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current user info"""
+    return current_user
+
+@router.patch("/me", response_model=UserResponse)
+def update_profile(
+    data: UserProfileUpdate,
+    current_user: User = Depends(get_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Update user profile settings"""
+    if data.is_public_profile is not None:
+        # Only creators and admins can have public profiles
+        if current_user.role == "user":
+            raise HTTPException(
+                status_code=403,
+                detail="You must be a creator to have a public profile. Request creator access first."
+            )
+        current_user.is_public_profile = data.is_public_profile
+    
+    db.commit()
+    db.refresh(current_user)
     return current_user

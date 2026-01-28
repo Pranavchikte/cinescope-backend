@@ -5,7 +5,7 @@ from jwt.exceptions import InvalidTokenError as JWTError
 from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db
-from app.models.user import User
+from app.models.user import User, UserRole
 
 security = HTTPBearer()
 
@@ -42,5 +42,16 @@ async def get_verified_user(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Please verify your email to access this feature"
+        )
+    return current_user
+
+async def require_admin(
+    current_user: User = Depends(get_verified_user)
+) -> User:
+    """Require user to be admin"""
+    if current_user.role != UserRole.admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
         )
     return current_user

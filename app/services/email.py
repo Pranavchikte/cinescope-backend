@@ -21,7 +21,7 @@ class EmailService:
                     <h2>Reset Your Password</h2>
                     <p>You requested to reset your password for CineScope.</p>
                     <p>Click the button below to reset your password:</p>
-                    <a href="{reset_link}" style="display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px; margin: 16px 0;">Reset Password</a>
+                    <a href="{reset_link}" style="display: inline-block; padding: 12px 24px; background-color: #c8a24a; color: white; text-decoration: none; border-radius: 6px; margin: 16px 0;">Reset Password</a>
                     <p>Or copy this link into your browser:</p>
                     <p style="color: #6b7280; font-size: 14px;">{reset_link}</p>
                     <p style="color: #6b7280; font-size: 14px; margin-top: 24px;">This link will expire in 15 minutes.</p>
@@ -49,7 +49,7 @@ class EmailService:
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                     <h2>Welcome to CineScope!</h2>
                     <p>Thanks for signing up. Please verify your email to start tracking movies and TV shows.</p>
-                    <a href="{verification_link}" style="display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px; margin: 16px 0;">Verify Email</a>
+                    <a href="{verification_link}" style="display: inline-block; padding: 12px 24px; background-color: #c8a24a; color: white; text-decoration: none; border-radius: 6px; margin: 16px 0;">Verify Email</a>
                     <p>Or copy this link into your browser:</p>
                     <p style="color: #6b7280; font-size: 14px;">{verification_link}</p>
                     <p style="color: #6b7280; font-size: 14px; margin-top: 24px;">This link will expire in 24 hours.</p>
