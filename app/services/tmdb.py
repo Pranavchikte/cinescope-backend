@@ -46,6 +46,10 @@ class TMDBService:
     async def get_movie_videos(self, movie_id: int) -> Dict[Any, Any]:
         return await self._make_request(f"/movie/{movie_id}/videos", cache_ttl=86400)
     
+    async def get_movie_images(self, movie_id: int) -> Dict[Any, Any]:
+        """Get movie images (backdrops and posters)"""
+        return await self._make_request(f"/movie/{movie_id}/images", cache_ttl=86400)
+    
     async def get_movie_watch_providers(self, movie_id: int) -> Dict[Any, Any]:
         """Get streaming providers for a movie"""
         return await self._make_request(f"/movie/{movie_id}/watch/providers", cache_ttl=86400)
@@ -138,6 +142,10 @@ class TMDBService:
     async def get_tv_videos(self, tv_id: int) -> Dict[Any, Any]:
         return await self._make_request(f"/tv/{tv_id}/videos", cache_ttl=86400)
     
+    async def get_tv_images(self, tv_id: int) -> Dict[Any, Any]:
+        """Get TV show images (backdrops and posters)"""
+        return await self._make_request(f"/tv/{tv_id}/images", cache_ttl=86400)
+    
     async def get_tv_watch_providers(self, tv_id: int) -> Dict[Any, Any]:
         """Get streaming providers for a TV show"""
         return await self._make_request(f"/tv/{tv_id}/watch/providers", cache_ttl=86400)
@@ -149,6 +157,10 @@ class TMDBService:
     async def get_similar_tv(self, tv_id: int, page: int = 1) -> Dict[Any, Any]:
         """Get TV shows similar to given show"""
         return await self._make_request(f"/tv/{tv_id}/similar", {"page": page}, cache_ttl=86400)
+    
+    async def get_tv_season(self, tv_id: int, season_number: int) -> Dict[Any, Any]:
+        """Get season details with all episodes"""
+        return await self._make_request(f"/tv/{tv_id}/season/{season_number}", cache_ttl=86400)
     
     async def discover_tv(
         self,
@@ -218,5 +230,25 @@ class TMDBService:
         region: ISO 3166-1 country code (default: IN for India)
         """
         return await self._make_request(f"/watch/providers/movie?watch_region={region}", cache_ttl=86400)
+    
+    async def get_watch_providers(self, region: str = "IN") -> Dict[Any, Any]:
+        """
+        Get list of available watch providers for a region
+        region: ISO 3166-1 country code (default: IN for India)
+        """
+        return await self._make_request(f"/watch/providers/movie?watch_region={region}", cache_ttl=86400)
+    
+    # People
+    async def get_person_details(self, person_id: int) -> Dict[Any, Any]:
+        """Get person details (bio, birthday, filmography overview)"""
+        return await self._make_request(f"/person/{person_id}", cache_ttl=86400)
+    
+    async def get_person_movie_credits(self, person_id: int) -> Dict[Any, Any]:
+        """Get all movies this person has worked on"""
+        return await self._make_request(f"/person/{person_id}/movie_credits", cache_ttl=86400)
+    
+    async def get_person_tv_credits(self, person_id: int) -> Dict[Any, Any]:
+        """Get all TV shows this person has worked on"""
+        return await self._make_request(f"/person/{person_id}/tv_credits", cache_ttl=86400)
 
 tmdb_service = TMDBService()

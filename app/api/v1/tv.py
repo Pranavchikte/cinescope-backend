@@ -95,6 +95,11 @@ async def get_tv_credits(tv_id: int):
 async def get_tv_videos(tv_id: int):
     return await tmdb_service.get_tv_videos(tv_id)
 
+@router.get("/{tv_id}/images")
+async def get_tv_images(tv_id: int):
+    """Get TV show images (backdrops and posters)"""
+    return await tmdb_service.get_tv_images(tv_id)
+
 @router.get("/{tv_id}/providers")
 async def get_tv_watch_providers(tv_id: int):
     """Get streaming providers where this TV show is available"""
@@ -115,3 +120,8 @@ async def get_similar_tv(
 ):
     """Get TV shows similar to this one"""
     return await tmdb_service.get_similar_tv(tv_id, page)
+
+@router.get("/{tv_id}/season/{season_number}")
+async def get_tv_season(tv_id: int, season_number: int):
+    """Get season details with all episodes"""
+    return await tmdb_service.get_tv_season(tv_id, season_number)

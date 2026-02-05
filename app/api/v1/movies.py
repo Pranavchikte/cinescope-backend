@@ -99,6 +99,11 @@ async def get_movie_credits(movie_id: int):
 async def get_movie_videos(movie_id: int):
     return await tmdb_service.get_movie_videos(movie_id)
 
+@router.get("/{movie_id}/images")
+async def get_movie_images(movie_id: int):
+    """Get movie images (backdrops and posters)"""
+    return await tmdb_service.get_movie_images(movie_id)
+
 @router.get("/{movie_id}/providers")
 async def get_movie_watch_providers(movie_id: int):
     """Get streaming providers where this movie is available"""

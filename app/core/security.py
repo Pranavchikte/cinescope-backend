@@ -22,14 +22,28 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "type": "access"})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 def create_refresh_token(data: dict) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "type": "refresh"})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+def verify_refresh_token(token: str) -> Optional[str]:
+    """Verify refresh token and return user_id if valid"""
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id: str = payload.get("sub")
+        token_type: str = payload.get("type")
+        if user_id is None or token_type != "refresh":
+            return None
+        return user_id
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.JWTError:
+        return None
 
 def create_password_reset_token(email: str) -> str:
     """Create a short-lived token for password reset (15 min expiry)"""
@@ -52,7 +66,6 @@ def verify_password_reset_token(token: str) -> Optional[str]:
     except jwt.JWTError:
         return None
     
-
 def create_email_verification_token(email: str) -> str:
     """Create a token for email verification (24 hour expiry)"""
     to_encode = {"sub": email, "type": "email_verification"}
