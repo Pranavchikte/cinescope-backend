@@ -16,11 +16,17 @@ class UserResponse(BaseModel):
     id: uuid.UUID
     username: str
     email: str
+    is_email_verified: bool
+    role: str
+    is_public_profile: bool
     created_at: datetime
     
     class Config:
         from_attributes = True
-        
+
+class UserProfileUpdate(BaseModel):
+    is_public_profile: Optional[bool] = None
+
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
@@ -30,3 +36,11 @@ class ResetPasswordRequest(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+class CreatorResponse(BaseModel):
+    id: uuid.UUID
+    username: str
+    is_public_profile: bool
+    
+    class Config:
+        from_attributes = True

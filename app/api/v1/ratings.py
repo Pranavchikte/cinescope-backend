@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from app.core.database import get_db
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_verified_user
 from app.models.user import User
 from app.models.rating import Rating
 from app.schemas.rating import RatingCreate, RatingUpdate, RatingResponse
@@ -11,7 +11,7 @@ router = APIRouter()
 
 @router.get("", response_model=List[RatingResponse])
 def get_ratings(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_verified_user),
     db: Session = Depends(get_db)
 ):
     ratings = db.query(Rating).filter(Rating.user_id == current_user.id).all()
@@ -20,7 +20,7 @@ def get_ratings(
 @router.post("", response_model=RatingResponse, status_code=201)
 def create_rating(
     data: RatingCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_verified_user),
     db: Session = Depends(get_db)
 ):
     # Check if already rated
@@ -48,7 +48,7 @@ def create_rating(
 def update_rating(
     rating_id: str,
     data: RatingUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_verified_user),
     db: Session = Depends(get_db)
 ):
     rating = db.query(Rating).filter(
@@ -67,7 +67,7 @@ def update_rating(
 @router.delete("/{rating_id}")
 def delete_rating(
     rating_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_verified_user),
     db: Session = Depends(get_db)
 ):
     rating = db.query(Rating).filter(

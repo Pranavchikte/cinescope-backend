@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from app.core.database import get_db
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_verified_user
 from app.models.user import User
 from app.models.watchlist import Watchlist
 from app.schemas.watchlist import WatchlistCreate, WatchlsitResponse
@@ -11,7 +11,7 @@ router = APIRouter()
 
 @router.get("", response_model=List[WatchlsitResponse])
 def get_watchlist(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_verified_user),
     db: Session = Depends(get_db)
 ):
     watchlist = db.query(Watchlist).filter(Watchlist.user_id == current_user.id).all()
@@ -20,7 +20,7 @@ def get_watchlist(
 @router.post("", response_model=WatchlsitResponse, status_code=201)
 def add_to_watchlist(
     data: WatchlistCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_verified_user),
     db: Session = Depends(get_db)
 ):
     existing = db.query(Watchlist).filter(
@@ -45,7 +45,7 @@ def add_to_watchlist(
 @router.delete("/{item_id}")
 def remove_from_watchlist(
     item_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_verified_user),
     db: Session = Depends(get_db)
 ):
     item = db.query(Watchlist).filter(
