@@ -6,6 +6,11 @@ from app.services.recommendation_service import recommendation_service
 from app.core.database import get_db
 from app.api.deps import get_verified_user
 from app.models.user import User
+from typing import List
+from pydantic import BaseModel
+
+class BatchRequest(BaseModel):
+    ids: List[int]
 
 router = APIRouter()
 
@@ -105,6 +110,24 @@ async def discover_movies(
         runtime_min=runtime_min,
         runtime_max=runtime_max,
     )
+
+@router.get("/full-details/{movie_id}")
+async def get_movie_full_details(movie_id: int):
+    """
+    Get ALL movie data in one call (details, credits, videos, images, providers, recommendations, similar)
+    Example: GET /movies/full-details/550
+    """
+    return await tmdb_service.get_movie_full_details(movie_id)
+
+# 🔥 MOVED BATCH-DETAILS HERE (BEFORE /{movie_id})
+@router.get("/batch-details")
+async def get_batch_movie_details(ids: str = Query(..., description="Comma-separated movie IDs")):
+    """
+    Fetch multiple movie details at once (optimized with caching)
+    Example: GET /movies/batch-details?ids=550,551,552
+    """
+    movie_ids = [int(id.strip()) for id in ids.split(",")]
+    return await tmdb_service.get_batch_movie_details(movie_ids)
 
 @router.get("/{movie_id}")
 async def get_movie_details(movie_id: int):

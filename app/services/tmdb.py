@@ -368,5 +368,140 @@ class TMDBService:
     async def get_person_tv_credits(self, person_id: int) -> Dict[Any, Any]:
         """Get all TV shows this person has worked on"""
         return await self._make_request(f"/person/{person_id}/tv_credits", cache_ttl=86400)
+    
+    # ADD THIS AT THE END OF TMDBService CLASS (line ~370)
+
+    async def get_batch_movie_details(self, movie_ids: List[int]) -> List[Dict[Any, Any]]:
+        """
+        Fetch multiple movie details in parallel with caching
+        Returns: List of movie detail objects
+        """
+        import asyncio
+        
+        async def fetch_movie(movie_id: int):
+            try:
+                return await self.get_movie_details(movie_id)
+            except Exception as e:
+                print(f"Failed to fetch movie {movie_id}: {e}")
+                return None
+        
+        # Fetch all movies in parallel
+        results = await asyncio.gather(*[fetch_movie(mid) for mid in movie_ids])
+        
+        # Filter out None (failed requests)
+        return [r for r in results if r is not None]
+    
+    async def get_batch_tv_details(self, tv_ids: List[int]) -> List[Dict[Any, Any]]:
+        """
+        Fetch multiple TV show details in parallel with caching
+        Returns: List of TV detail objects
+        """
+        import asyncio
+        
+        async def fetch_tv(tv_id: int):
+            try:
+                return await self.get_tv_details(tv_id)
+            except Exception as e:
+                print(f"Failed to fetch TV show {tv_id}: {e}")
+                return None
+        
+        # Fetch all TV shows in parallel
+        results = await asyncio.gather(*[fetch_tv(tid) for tid in tv_ids])
+        
+        # Filter out None (failed requests)
+        return [r for r in results if r is not None]
+    
+    async def get_batch_mixed_details(self, items: List[Dict[str, Any]]) -> Dict[str, List[Dict[Any, Any]]]:
+        """
+        Fetch mixed movie and TV details in one call
+        Input: [{"tmdb_id": 123, "media_type": "movie"}, {"tmdb_id": 456, "media_type": "tv"}]
+        Returns: {"movies": [...], "tv": [...]}
+        """
+        import asyncio
+        
+        movie_ids = [item["tmdb_id"] for item in items if item["media_type"] == "movie"]
+        tv_ids = [item["tmdb_id"] for item in items if item["media_type"] == "tv"]
+        
+        movies, tv_shows = await asyncio.gather(
+            self.get_batch_movie_details(movie_ids) if movie_ids else asyncio.sleep(0, result=[]),
+            self.get_batch_tv_details(tv_ids) if tv_ids else asyncio.sleep(0, result=[])
+        )
+        
+        return {
+            "movies": movies,
+            "tv": tv_shows
+        }
+    
+    async def get_movie_full_details(self, movie_id: int) -> Dict[Any, Any]:
+        """
+        Fetch ALL movie details in one combined call (optimized with caching)
+        Returns: {
+            details: {...},
+            credits: {...},
+            videos: {...},
+            images: {...},
+            providers: {...},
+            recommendations: {...},
+            similar: {...}
+        }
+        """
+        import asyncio
+        
+        # Fetch all data in parallel
+        details, credits, videos, images, providers, recommendations, similar = await asyncio.gather(
+            self.get_movie_details(movie_id),
+            self.get_movie_credits(movie_id),
+            self.get_movie_videos(movie_id),
+            self.get_movie_images(movie_id),
+            self.get_movie_watch_providers(movie_id),
+            self.get_movie_recommendations(movie_id, page=1),
+            self.get_similar_movies(movie_id, page=1),
+        )
+        
+        return {
+            "details": details,
+            "credits": credits,
+            "videos": videos,
+            "images": images,
+            "providers": providers,
+            "recommendations": recommendations,
+            "similar": similar
+        }
+    
+    async def get_tv_full_details(self, tv_id: int) -> Dict[Any, Any]:
+        """
+        Fetch ALL TV show details in one combined call (optimized with caching)
+        Returns: {
+            details: {...},
+            credits: {...},
+            videos: {...},
+            images: {...},
+            providers: {...},
+            recommendations: {...},
+            similar: {...}
+        }
+        """
+        import asyncio
+        
+        # Fetch all data in parallel
+        details, credits, videos, images, providers, recommendations, similar = await asyncio.gather(
+            self.get_tv_details(tv_id),
+            self.get_tv_credits(tv_id),
+            self.get_tv_videos(tv_id),
+            self.get_tv_images(tv_id),
+            self.get_tv_watch_providers(tv_id),
+            self.get_tv_recommendations(tv_id, page=1),
+            self.get_similar_tv(tv_id, page=1),
+        )
+        
+        return {
+            "details": details,
+            "credits": credits,
+            "videos": videos,
+            "images": images,
+            "providers": providers,
+            "recommendations": recommendations,
+            "similar": similar
+        }
 
 tmdb_service = TMDBService()
