@@ -11,10 +11,28 @@ router = APIRouter()
 
 @router.get("/trending")
 async def get_trending_tv(time_window: str = Query("week", regex="^(day|week)$")):
+    """Get trending TV shows (mixed Indian + international, Indian content boosted)"""
     return await tmdb_service.get_trending_tv(time_window)
+
+@router.get("/indian-trending")
+async def get_indian_trending_tv():
+    """
+    Get trending TV shows from multiple Indian languages
+    Returns: Categorized by language (Hindi, Tamil, Telugu, etc.)
+    """
+    return await tmdb_service.get_indian_trending_tv()
+
+@router.get("/new-releases")
+async def get_new_indian_releases_tv():
+    """
+    Get recent Indian TV show releases (last 30 days)
+    All Indian languages combined
+    """
+    return await tmdb_service.get_new_indian_releases_tv()
 
 @router.get("/popular")
 async def get_popular_tv():
+    """Get popular TV shows (Indian content boosted)"""
     return await tmdb_service.get_popular_tv()
 
 @router.get("/search")
@@ -44,6 +62,7 @@ async def get_personalized_tv(
     - New users: Popular/trending shows
     - Few ratings (5-19): Top 2 favorite genres
     - Many ratings (20+): Full personalization with top 3 genres
+    - ALWAYS boosts Indian content
     """
     return await recommendation_service.get_personalized_tv(
         user_id=str(current_user.id),
@@ -67,7 +86,7 @@ async def discover_tv(
     vote_average_max: Optional[float] = Query(None, ge=0, le=10, description="Maximum rating (0-10)"),
 ):
     """
-    Discover TV shows with filters
+    Discover TV shows with filters (defaults to Indian region)
     Example: /tv/discover?provider=119&language=hi&country=IN&vote_average_min=7.5
     """
     return await tmdb_service.discover_tv(

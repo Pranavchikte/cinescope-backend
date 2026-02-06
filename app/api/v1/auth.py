@@ -8,7 +8,10 @@ from app.schemas.user import UserCreate, UserLogin, UserResponse, ForgotPassword
 from app.schemas.token import Token
 from app.services.email import email_service
 from app.api.deps import get_current_user, get_verified_user
+from pydantic import BaseModel
 
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
 
 router = APIRouter()
 
@@ -59,9 +62,9 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
     }
 
 @router.post("/refresh", response_model=Token)
-def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
+def refresh_token(request: RefreshTokenRequest, db: Session = Depends(get_db)):
     """Get new access token using refresh token"""
-    user_id = verify_refresh_token(refresh_token)
+    user_id = verify_refresh_token(request.refresh_token)
     
     if not user_id:
         raise HTTPException(

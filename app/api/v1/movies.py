@@ -11,10 +11,28 @@ router = APIRouter()
 
 @router.get("/trending")
 async def get_trending_movies(time_window: str = Query("week", regex="^(day|week)$")):
+    """Get trending movies (mixed Indian + international, Indian content boosted)"""
     return await tmdb_service.get_trending_movies(time_window)
+
+@router.get("/indian-trending")
+async def get_indian_trending_movies():
+    """
+    Get trending movies from multiple Indian languages
+    Returns: Categorized by language (Hindi, Tamil, Telugu, etc.)
+    """
+    return await tmdb_service.get_indian_trending_movies()
+
+@router.get("/new-releases")
+async def get_new_indian_releases():
+    """
+    Get recent Indian movie releases (last 30 days)
+    All Indian languages combined
+    """
+    return await tmdb_service.get_new_indian_releases_movies()
 
 @router.get("/popular")
 async def get_popular_movies():
+    """Get popular movies (Indian content boosted)"""
     return await tmdb_service.get_popular_movies()
 
 @router.get("/search")
@@ -44,6 +62,7 @@ async def get_personalized_movies(
     - New users: Popular/trending movies
     - Few ratings (5-19): Top 2 favorite genres
     - Many ratings (20+): Full personalization with top 3 genres
+    - ALWAYS boosts Indian content
     """
     return await recommendation_service.get_personalized_movies(
         user_id=str(current_user.id),
@@ -69,7 +88,7 @@ async def discover_movies(
     runtime_max: Optional[int] = Query(None, ge=0, description="Maximum runtime in minutes"),
 ):
     """
-    Discover movies with filters
+    Discover movies with filters (defaults to Indian region)
     Example: /movies/discover?genre=28&provider=8,119&country=IN&vote_count_min=500&vote_average_min=7.0
     """
     return await tmdb_service.discover_movies(

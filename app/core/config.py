@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     TMDB_API_KEY: str
     TMDB_BASE_URL: str = "https://api.themoviedb.org/3"
     
+    # Indian content configuration
+    INDIAN_LANGUAGES: List[str] = ["hi", "mr", "ta", "te", "pa", "ml", "kn", "bn", "gu"]
+    INDIAN_OTT_PROVIDERS: List[int] = [122, 8, 119, 232, 237]  # Hotstar, Netflix IN, Prime IN, Zee5, SonyLIV
+    INDIAN_REGION: str = "IN"
+    
     # CORS
     ALLOWED_ORIGINS: str
     

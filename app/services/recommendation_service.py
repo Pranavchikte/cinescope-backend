@@ -4,6 +4,7 @@ from typing import List, Dict, Any, Optional
 from app.models.rating import Rating, RatingValue
 from app.models.user import User
 from app.services.tmdb import tmdb_service
+from app.core.config import settings
 from collections import Counter
 
 class RecommendationService:
@@ -18,6 +19,7 @@ class RecommendationService:
     ) -> Dict[Any, Any]:
         """
         Get personalized movie recommendations based on user's rating history
+        ALWAYS boosts Indian content
         """
         # Get user's ratings
         ratings = db.query(Rating).filter(
@@ -29,12 +31,16 @@ class RecommendationService:
         
         # NEW USER: No ratings or very few
         if rating_count < 5:
-            return await tmdb_service.discover_movies(
+            results = await tmdb_service.discover_movies(
                 sort_by="popularity.desc",
                 page=page,
                 vote_count_min=vote_count_min,
                 vote_average_min=vote_average_min
             )
+            # Boost Indian content even for new users
+            if "results" in results:
+                results["results"] = tmdb_service._boost_indian_content(results["results"], boost_factor=5.0)
+            return results
         
         # Get rated movie IDs to exclude
         rated_movie_ids = {r.tmdb_id for r in ratings}
@@ -67,8 +73,10 @@ class RecommendationService:
                 vote_average_min=7.0  # Higher threshold for experienced users
             )
         
-        # Filter out already rated movies
+        # Boost Indian content
         if "results" in results:
+            results["results"] = tmdb_service._boost_indian_content(results["results"], boost_factor=5.0)
+            # Filter out already rated movies
             results["results"] = [
                 movie for movie in results["results"]
                 if movie["id"] not in rated_movie_ids
@@ -86,6 +94,7 @@ class RecommendationService:
     ) -> Dict[Any, Any]:
         """
         Get personalized TV recommendations based on user's rating history
+        ALWAYS boosts Indian content
         """
         ratings = db.query(Rating).filter(
             Rating.user_id == user_id,
@@ -96,12 +105,16 @@ class RecommendationService:
         
         # NEW USER
         if rating_count < 5:
-            return await tmdb_service.discover_tv(
+            results = await tmdb_service.discover_tv(
                 sort_by="popularity.desc",
                 page=page,
                 vote_count_min=vote_count_min,
                 vote_average_min=vote_average_min
             )
+            # Boost Indian content even for new users
+            if "results" in results:
+                results["results"] = tmdb_service._boost_indian_content(results["results"], boost_factor=5.0)
+            return results
         
         rated_tv_ids = {r.tmdb_id for r in ratings}
         favorite_genres = await self._get_favorite_genres(user_id, db, media_type="tv")
@@ -131,8 +144,10 @@ class RecommendationService:
                 vote_average_min=7.0
             )
         
-        # Filter out already rated
+        # Boost Indian content
         if "results" in results:
+            results["results"] = tmdb_service._boost_indian_content(results["results"], boost_factor=5.0)
+            # Filter out already rated
             results["results"] = [
                 show for show in results["results"]
                 if show["id"] not in rated_tv_ids
