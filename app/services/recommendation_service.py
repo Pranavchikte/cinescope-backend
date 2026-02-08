@@ -4,6 +4,7 @@ from typing import List, Dict, Any, Optional
 from app.models.rating import Rating, RatingValue
 from app.models.user import User
 from app.services.tmdb import tmdb_service
+from app.services.cache import cache_service
 from app.core.config import settings
 from collections import Counter
 
@@ -45,7 +46,7 @@ class RecommendationService:
         # Get rated movie IDs to exclude
         rated_movie_ids = {r.tmdb_id for r in ratings}
         
-        # Analyze preferences
+        # Analyze preferences (NOW CACHED)
         favorite_genres = await self._get_favorite_genres(user_id, db, media_type="movie")
         
         # SOME RATINGS (5-19): Use top 2 genres
@@ -163,8 +164,15 @@ class RecommendationService:
     ) -> List[int]:
         """
         Analyze user's ratings to find favorite genres
+        NOW WITH CACHING (1 hour TTL)
         Returns list of genre IDs sorted by preference
         """
+        # Check cache first
+        cache_key = f"user_genres:{user_id}:{media_type}"
+        cached_genres = cache_service.get(cache_key)
+        if cached_genres:
+            return cached_genres
+        
         # Get user's "perfection" and "go_for_it" ratings
         high_ratings = db.query(Rating).filter(
             Rating.user_id == user_id,
@@ -175,16 +183,23 @@ class RecommendationService:
         if not high_ratings:
             return []
         
+        # Collect TMDB IDs for batch fetch
+        tmdb_ids = [rating.tmdb_id for rating in high_ratings]
+        
+        # OPTIMIZED: Batch fetch instead of N individual calls
+        if media_type == "movie":
+            details_list = await tmdb_service.get_batch_movie_details(tmdb_ids)
+        else:
+            details_list = await tmdb_service.get_batch_tv_details(tmdb_ids)
+        
+        # Create mapping of tmdb_id -> details for fast lookup
+        details_map = {details["id"]: details for details in details_list if "id" in details}
+        
         # Collect all genres from highly rated content
         all_genres = []
         for rating in high_ratings:
-            # Fetch movie/tv details to get genres
-            if media_type == "movie":
-                details = await tmdb_service.get_movie_details(rating.tmdb_id)
-            else:
-                details = await tmdb_service.get_tv_details(rating.tmdb_id)
-            
-            if "genres" in details:
+            details = details_map.get(rating.tmdb_id)
+            if details and "genres" in details:
                 genre_ids = [g["id"] for g in details["genres"]]
                 # Weight "perfection" higher than "go_for_it"
                 weight = 2 if rating.rating == RatingValue.perfection else 1
@@ -193,7 +208,12 @@ class RecommendationService:
         # Count genre frequency
         genre_counts = Counter(all_genres)
         
-        # Return top genres sorted by count
-        return [genre_id for genre_id, count in genre_counts.most_common()]
+        # Get top genres sorted by count
+        favorite_genres = [genre_id for genre_id, count in genre_counts.most_common()]
+        
+        # Cache for 1 hour
+        cache_service.set(cache_key, favorite_genres, ttl=3600)
+        
+        return favorite_genres
 
 recommendation_service = RecommendationService()

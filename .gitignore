@@ -1,48 +1,58 @@
+.env
+.env.local
+.env.production
+.env.prod
+
+# Allow example
+!.env.example
+
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-venv/
 env/
-ENV/
+venv/
+.venv/
 *.egg-info/
 dist/
 build/
 
-# Environment
-.env
-.env.local
-.env.*.local
-.env.example
+# Database
+*.db
+*.sqlite3
+*.sql
+backups/
 
-# IDEs
+# Docker volumes
+postgres_data/
+redis_data/
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
+
+# Logs
+*.log
+logs/
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Database
-*.db
-*.sqlite3
-
-# Logs
-*.log
+# SSL
+ssl/
+*.pem
+*.crt
+*.key
 
 # Testing
 .pytest_cache/
 .coverage
 htmlcov/
 
-# Docker
-docker-compose.override.yml
-
-# Email (Resend)
-RESEND_API_KEY=your-resend-api-key-here
-EMAIL_FROM=onboarding@resend.dev
+# Alembic
+alembic/versions/__pycache__/

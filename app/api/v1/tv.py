@@ -6,6 +6,11 @@ from app.services.recommendation_service import recommendation_service
 from app.core.database import get_db
 from app.api.deps import get_verified_user
 from app.models.user import User
+from typing import List
+from pydantic import BaseModel
+
+class BatchRequest(BaseModel):
+    ids: List[int]
 
 router = APIRouter()
 
@@ -101,6 +106,24 @@ async def discover_tv(
         vote_average_min=vote_average_min,
         vote_average_max=vote_average_max,
     )
+
+@router.get("/full-details/{tv_id}")
+async def get_tv_full_details(tv_id: int):
+    """
+    Get ALL TV show data in one call (details, credits, videos, images, providers, recommendations, similar)
+    Example: GET /tv/full-details/1396
+    """
+    return await tmdb_service.get_tv_full_details(tv_id)
+
+# 🔥 MOVED BATCH-DETAILS HERE (BEFORE /{tv_id})
+@router.get("/batch-details")
+async def get_batch_tv_details(ids: str = Query(..., description="Comma-separated TV IDs")):
+    """
+    Fetch multiple TV show details at once (optimized with caching)
+    Example: GET /tv/batch-details?ids=1396,1399,1402
+    """
+    tv_ids = [int(id.strip()) for id in ids.split(",")]
+    return await tmdb_service.get_batch_tv_details(tv_ids)
 
 @router.get("/{tv_id}")
 async def get_tv_details(tv_id: int):

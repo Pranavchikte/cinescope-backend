@@ -17,11 +17,11 @@ class Rating(Base):
     __tablename__ = "ratings"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    tmdb_id = Column(Integer, nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    tmdb_id = Column(Integer, nullable=False, index=True)
     media_type = Column(SQLEnum(MediaType), nullable=False)
     rating = Column(SQLEnum(RatingValue), nullable=False)
-    rated_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    rated_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships

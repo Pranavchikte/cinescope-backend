@@ -9,10 +9,11 @@ from app.models.user import User, UserRole
 
 security = HTTPBearer()
 
-async def get_current_user(
+def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ) -> User:
+    """Get current user from JWT token"""
     token = credentials.credentials
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -34,7 +35,7 @@ async def get_current_user(
     
     return user
 
-async def get_verified_user(
+def get_verified_user(
     current_user: User = Depends(get_current_user)
 ) -> User:
     """Require user to have verified email"""
@@ -45,7 +46,7 @@ async def get_verified_user(
         )
     return current_user
 
-async def require_admin(
+def require_admin(
     current_user: User = Depends(get_verified_user)
 ) -> User:
     """Require user to be admin"""

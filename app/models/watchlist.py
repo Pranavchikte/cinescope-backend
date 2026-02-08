@@ -14,10 +14,10 @@ class Watchlist(Base):
     __tablename__ = "watchlist"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    tmdb_id = Column(Integer, nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    tmdb_id = Column(Integer, nullable=False, index=True)
     media_type = Column(SQLEnum(MediaType), nullable=False)
-    added_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    added_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     
     user = relationship("User", back_populates="watchlist")
     
