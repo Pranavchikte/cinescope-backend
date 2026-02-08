@@ -21,7 +21,7 @@ class User(Base, TimeStampMixin):
     is_email_verified = Column(Boolean, default=False, nullable=False)
     email_verified_at = Column(DateTime, nullable=True)
     role = Column(SQLEnum(UserRole), default=UserRole.user, nullable=False)
-    is_public_profile = Column(Boolean, default=False, nullable=False)
+    is_public_profile = Column(Boolean, default=True, nullable=False)
     
     # Relationships
     watchlist = relationship("Watchlist", back_populates="user", cascade="all, delete-orphan")

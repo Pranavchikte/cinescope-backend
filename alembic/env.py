@@ -12,6 +12,7 @@ from app.core.database import Base
 from app.models.user import User
 from app.models.watchlist import Watchlist
 from app.models.rating import Rating
+from app.models.creator_request import CreatorRequest
 
 # this is the Alembic Config object
 config = context.config

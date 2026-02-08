@@ -7,7 +7,7 @@ class WatchlistCreate(BaseModel):
     tmdb_id: int
     media_type: MediaType
 
-class WatchlsitResponse(BaseModel):
+class WatchlistResponse(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID
     tmdb_id: int

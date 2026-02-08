@@ -20,14 +20,17 @@ class Settings(BaseSettings):
     
     # Indian content configuration
     INDIAN_LANGUAGES: List[str] = ["hi", "mr", "ta", "te", "pa", "ml", "kn", "bn", "gu"]
-    INDIAN_OTT_PROVIDERS: List[int] = [122, 8, 119, 232, 237]  # Hotstar, Netflix IN, Prime IN, Zee5, SonyLIV
+    INDIAN_OTT_PROVIDERS: List[int] = [122, 8, 119, 232, 237]
     INDIAN_REGION: str = "IN"
     
     # CORS
     ALLOWED_ORIGINS: str
+    FRONTEND_URL: str = "http://localhost:3000"
+    LOG_LEVEL: str = "INFO"
     
-    RESEND_API_KEY: str
-    EMAIL_FROM: str = "onboarding@resend.dev"
+    # Email
+    SENDGRID_API_KEY: str
+    EMAIL_FROM: str = "noreply@cinescopes.app"
     
     @property
     def allowed_origins_list(self) -> List[str]:

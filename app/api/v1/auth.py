@@ -1,14 +1,28 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from datetime import datetime
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from app.core.database import get_db
-from app.core.security import verify_password, get_password_hash, create_access_token, create_refresh_token, verify_refresh_token, create_password_reset_token, verify_password_reset_token, create_email_verification_token, verify_email_verification_token
+from app.core.security import (
+    verify_password, get_password_hash, create_access_token, 
+    create_refresh_token, verify_refresh_token, 
+    create_password_reset_token, verify_password_reset_token, 
+    create_email_verification_token, verify_email_verification_token
+)
 from app.models.user import User
-from app.schemas.user import UserCreate, UserLogin, UserResponse, ForgotPasswordRequest, ResetPasswordRequest, MessageResponse, UserProfileUpdate
+from app.schemas.user import (
+    UserCreate, UserLogin, UserResponse, 
+    ForgotPasswordRequest, ResetPasswordRequest, 
+    MessageResponse, UserProfileUpdate
+)
 from app.schemas.token import Token
 from app.services.email import email_service
 from app.api.deps import get_current_user, get_verified_user
 from pydantic import BaseModel
+
+# Initialize limiter
+limiter = Limiter(key_func=get_remote_address)
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
@@ -16,7 +30,8 @@ class RefreshTokenRequest(BaseModel):
 router = APIRouter()
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register(user_data: UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")
+async def register(request: Request, user_data: UserCreate, db: Session = Depends(get_db)):
     # Check if user exists
     if db.query(User).filter(User.email == user_data.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -43,13 +58,21 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     return user
 
 @router.post("/login", response_model=Token)
-def login(user_data: UserLogin, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login(request: Request, user_data: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == user_data.email).first()
     
     if not user or not verify_password(user_data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password"
+        )
+    
+    # NEW: Enforce email verification on login
+    if not user.is_email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please verify your email before logging in. Check your inbox for the verification link."
         )
     
     access_token = create_access_token(data={"sub": str(user.id)})
@@ -62,9 +85,10 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
     }
 
 @router.post("/refresh", response_model=Token)
-def refresh_token(request: RefreshTokenRequest, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def refresh_token(request: Request, refresh_request: RefreshTokenRequest, db: Session = Depends(get_db)):
     """Get new access token using refresh token"""
-    user_id = verify_refresh_token(request.refresh_token)
+    user_id = verify_refresh_token(refresh_request.refresh_token)
     
     if not user_id:
         raise HTTPException(
@@ -89,9 +113,10 @@ def refresh_token(request: RefreshTokenRequest, db: Session = Depends(get_db)):
     }
     
 @router.post("/forgot-password", response_model=MessageResponse)
-async def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")
+async def forgot_password(request: Request, forgot_request: ForgotPasswordRequest, db: Session = Depends(get_db)):
     """Send password reset email"""
-    user = db.query(User).filter(User.email == request.email).first()
+    user = db.query(User).filter(User.email == forgot_request.email).first()
     
     # Always return success (don't reveal if email exists)
     if not user:
@@ -109,10 +134,11 @@ async def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(
     return {"message": "If that email exists, a reset link has been sent"}
 
 @router.post("/reset-password", response_model=MessageResponse)
-def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def reset_password(request: Request, reset_request: ResetPasswordRequest, db: Session = Depends(get_db)):
     """Reset password using token"""
     # Verify token
-    email = verify_password_reset_token(request.token)
+    email = verify_password_reset_token(reset_request.token)
     if not email:
         raise HTTPException(status_code=400, detail="Invalid or expired reset token")
     
@@ -122,7 +148,7 @@ def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db))
         raise HTTPException(status_code=404, detail="User not found")
     
     # Update password
-    user.password_hash = get_password_hash(request.new_password)
+    user.password_hash = get_password_hash(reset_request.new_password)
     db.commit()
     
     return {"message": "Password reset successful"}
@@ -151,7 +177,9 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     return {"message": "Email verified successfully"}
 
 @router.post("/resend-verification", response_model=MessageResponse)
+@limiter.limit("3/minute")
 async def resend_verification(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):

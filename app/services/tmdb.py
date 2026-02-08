@@ -1,8 +1,12 @@
 import httpx
+import logging
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 from app.core.config import settings
 from app.services.cache import cache_service
+
+logger = logging.getLogger(__name__)
+
 
 class TMDBService:
     def __init__(self):
@@ -20,13 +24,35 @@ class TMDBService:
             params = {}
         params["api_key"] = self.api_key
         
-        async with httpx.AsyncClient() as client:
-            response = await client.get(f"{self.base_url}{endpoint}", params=params)
-            response.raise_for_status()
-            data = response.json()
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(f"{self.base_url}{endpoint}", params=params)
+                response.raise_for_status()
+                data = response.json()
+            
+            cache_service.set(cache_key, data, cache_ttl)
+            return data
         
-        cache_service.set(cache_key, data, cache_ttl)
-        return data
+        except httpx.TimeoutException:
+            # If timeout, try to return cached data (even if expired)
+            cached_data = cache_service.get(cache_key)
+            if cached_data:
+                return cached_data
+            return {"error": "Request timeout", "results": []}
+        
+        except httpx.HTTPStatusError as e:
+            # TMDB API error (rate limit, invalid key, etc.)
+            logger.error(f"TMDB API error: {e.response.status_code} - {e.response.text}")
+            return {"error": f"TMDB API error: {e.response.status_code}", "results": []}
+        
+        except Exception as e:
+            # Any other error
+            logger.error(f"TMDB request failed: {str(e)}")
+            # Try to return cached data
+            cached_data = cache_service.get(cache_key)
+            if cached_data:
+                return cached_data
+            return {"error": "Service unavailable", "results": []}
     
     def _boost_indian_content(self, results: List[Dict], boost_factor: float = 5.0) -> List[Dict]:
         """
@@ -123,7 +149,29 @@ class TMDBService:
         return data
     
     async def search_movies(self, query: str) -> Dict[Any, Any]:
-        return await self._make_request("/search/movie", {"query": query}, cache_ttl=3600)
+    
+        data = await self._make_request("/search/movie", {"query": query}, cache_ttl=1800)
+        
+        if "results" in data and data["results"]:
+            # Sort by combined score: popularity * (1 + log(vote_count)) * (vote_average/10)
+            # This ensures popular, well-rated movies with many votes rank highest
+            for item in data["results"]:
+                popularity = item.get("popularity", 0)
+                vote_count = max(item.get("vote_count", 0), 1)  # Avoid log(0)
+                vote_average = item.get("vote_average", 5.0)
+                
+                # Calculate combined score
+                import math
+                item["_search_score"] = popularity * (1 + math.log10(vote_count)) * (vote_average / 10)
+            
+            # Sort by score descending
+            data["results"].sort(key=lambda x: x.get("_search_score", 0), reverse=True)
+            
+            # Remove internal score field before returning
+            for item in data["results"]:
+                item.pop("_search_score", None)
+        
+        return data
     
     async def get_movie_details(self, movie_id: int) -> Dict[Any, Any]:
         return await self._make_request(f"/movie/{movie_id}", cache_ttl=86400)
@@ -271,7 +319,31 @@ class TMDBService:
         return await self._make_request(f"/tv/{tv_id}", cache_ttl=86400)
     
     async def search_tv(self, query: str) -> Dict[Any, Any]:
-        return await self._make_request("/search/tv", {"query": query}, cache_ttl=3600)
+        """
+        Search TV shows with popularity-based sorting
+        Prioritizes: high popularity + high vote count + good ratings
+        """
+        data = await self._make_request("/search/tv", {"query": query}, cache_ttl=1800)
+        
+        if "results" in data and data["results"]:
+            # Sort by combined score: popularity * (1 + log(vote_count)) * (vote_average/10)
+            for item in data["results"]:
+                popularity = item.get("popularity", 0)
+                vote_count = max(item.get("vote_count", 0), 1)  # Avoid log(0)
+                vote_average = item.get("vote_average", 5.0)
+                
+                # Calculate combined score
+                import math
+                item["_search_score"] = popularity * (1 + math.log10(vote_count)) * (vote_average / 10)
+            
+            # Sort by score descending
+            data["results"].sort(key=lambda x: x.get("_search_score", 0), reverse=True)
+            
+            # Remove internal score field before returning
+            for item in data["results"]:
+                item.pop("_search_score", None)
+        
+        return data
     
     async def get_tv_credits(self, tv_id: int) -> Dict[Any, Any]:
         return await self._make_request(f"/tv/{tv_id}/credits", cache_ttl=86400)
@@ -382,7 +454,7 @@ class TMDBService:
             try:
                 return await self.get_movie_details(movie_id)
             except Exception as e:
-                print(f"Failed to fetch movie {movie_id}: {e}")
+                logger.warning(f"Failed to fetch movie {movie_id}: {e}")
                 return None
         
         # Fetch all movies in parallel
@@ -402,7 +474,7 @@ class TMDBService:
             try:
                 return await self.get_tv_details(tv_id)
             except Exception as e:
-                print(f"Failed to fetch TV show {tv_id}: {e}")
+                logger.warning(f"Failed to fetch TV show {tv_id}: {e}")
                 return None
         
         # Fetch all TV shows in parallel
