@@ -20,6 +20,7 @@ from app.schemas.token import Token
 from app.services.email import email_service
 from app.api.deps import get_current_user, get_verified_user
 from pydantic import BaseModel
+import re
 
 # Initialize limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -28,6 +29,22 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
 router = APIRouter()
+
+def validate_password_strength(password: str) -> tuple[bool, str]:
+    """Validate password meets security requirements"""
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters long"
+    if len(password) > 60:
+        return False, "Password must not exceed 60 characters"
+    if not re.search(r"[A-Z]", password):
+        return False, "Password must contain at least one uppercase letter"
+    if not re.search(r"[a-z]", password):
+        return False, "Password must contain at least one lowercase letter"
+    if not re.search(r"[0-9]", password):
+        return False, "Password must contain at least one number"
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        return False, "Password must contain at least one special character"
+    return True, ""
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("3/minute")
@@ -38,6 +55,11 @@ async def register(request: Request, user_data: UserCreate, db: Session = Depend
     
     if db.query(User).filter(User.username == user_data.username).first():
         raise HTTPException(status_code=400, detail="Username already taken")
+    
+    # Validate password strength
+    is_valid, error_msg = validate_password_strength(user_data.password)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_msg)
     
     # Create user with unverified email
     hashed_password = get_password_hash(user_data.password)
@@ -68,7 +90,7 @@ def login(request: Request, user_data: UserLogin, db: Session = Depends(get_db))
             detail="Incorrect email or password"
         )
     
-    # NEW: Enforce email verification on login
+    # Enforce email verification on login
     if not user.is_email_verified:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -146,6 +168,11 @@ def reset_password(request: Request, reset_request: ResetPasswordRequest, db: Se
     user = db.query(User).filter(User.email == email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    # Validate new password strength
+    is_valid, error_msg = validate_password_strength(reset_request.new_password)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_msg)
     
     # Update password
     user.password_hash = get_password_hash(reset_request.new_password)
