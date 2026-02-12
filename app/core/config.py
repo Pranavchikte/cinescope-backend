@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     SENDGRID_API_KEY: str
     EMAIL_FROM: str = "noreply@cinescopes.app"
     
+    # Gemini AI
+    GEMINI_API_KEY: str
+    
     @property
     def allowed_origins_list(self) -> List[str]:
         return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
