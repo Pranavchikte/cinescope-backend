@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from typing import List, Dict, Any
 from app.services.tmdb import tmdb_service
 from app.services.vector_store import vector_store
@@ -8,21 +9,26 @@ logger = logging.getLogger(__name__)
 
 class EmbeddingService:
     
-    async def index_popular_movies(self, num_pages: int = 20):
+    async def index_popular_movies(self, num_pages: int = 50):
         """
         Fetch popular movies from TMDB and index them
-        num_pages: Number of pages to fetch (20 pages = ~400 movies)
+        num_pages: Number of pages to fetch (50 pages = ~1000 movies)
+        Sorted by popularity.desc (most popular first)
+        Only includes movies with 2000+ votes (truly popular)
         """
         all_movies = []
         
-        logger.info(f"Fetching {num_pages} pages of popular movies...")
+        logger.info(f"Fetching {num_pages} pages of popular movies (2000+ votes)...")
         
         for page in range(1, num_pages + 1):
             data = await tmdb_service.discover_movies(
                 sort_by="popularity.desc",
                 page=page,
-                vote_count_min=100
+                vote_count_min=2000  # Increased from 500 - only blockbusters
             )
+            
+            # Delay to avoid TMDB rate limit (30 req/10sec)
+            await asyncio.sleep(0.5)
             
             if "results" in data and data["results"]:
                 movies = data["results"]
@@ -92,21 +98,26 @@ class EmbeddingService:
         
         return [genre_map.get(gid, "") for gid in genre_ids if gid in genre_map]
     
-    async def index_popular_tv(self, num_pages: int = 20):
+    async def index_popular_tv(self, num_pages: int = 50):
         """
         Fetch popular TV shows from TMDB and index them
-        num_pages: Number of pages to fetch (20 pages = ~400 TV shows)
+        num_pages: Number of pages to fetch (50 pages = ~1000 TV shows)
+        Sorted by popularity.desc (most popular first)
+        Only includes shows with 2000+ votes (truly popular)
         """
         all_shows = []
         
-        logger.info(f"Fetching {num_pages} pages of popular TV shows...")
+        logger.info(f"Fetching {num_pages} pages of popular TV shows (2000+ votes)...")
         
         for page in range(1, num_pages + 1):
             data = await tmdb_service.discover_tv(
                 sort_by="popularity.desc",
                 page=page,
-                vote_count_min=100
+                vote_count_min=2000  # Increased from 500 - only blockbusters
             )
+            
+            # Delay to avoid TMDB rate limit (30 req/10sec)
+            await asyncio.sleep(0.5)
             
             if "results" in data and data["results"]:
                 shows = data["results"]
