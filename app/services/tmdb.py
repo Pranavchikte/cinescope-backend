@@ -212,6 +212,7 @@ class TMDBService:
         vote_average_max: Optional[float] = None,
         runtime_min: Optional[int] = None,
         runtime_max: Optional[int] = None,
+        primary_release_date_gte: Optional[str] = None,
     ) -> Dict[Any, Any]:
         """
         Discover movies with filters (defaults to Indian region)
@@ -219,8 +220,16 @@ class TMDBService:
         params = {
             "sort_by": sort_by,
             "page": page,
-            "region": country if country else settings.INDIAN_REGION,  # Default to India
         }
+        
+        # Set region - required for provider filtering
+        if provider:
+            # When provider is set, watch_region is REQUIRED
+            params["watch_region"] = country if country else "US"  # Changed from INDIAN_REGION to US for global
+            params["with_watch_providers"] = provider
+        else:
+            # When no provider, use region for general results
+            params["region"] = country if country else settings.INDIAN_REGION
         
         if genre:
             params["with_genres"] = genre
@@ -228,9 +237,8 @@ class TMDBService:
             params["primary_release_year"] = year
         if language:
             params["with_original_language"] = language
-        if provider:
-            params["with_watch_providers"] = provider
-            params["watch_region"] = country if country else settings.INDIAN_REGION
+        if primary_release_date_gte:
+            params["primary_release_date.gte"] = primary_release_date_gte
         
         # Quality filters
         if vote_count_min:
@@ -383,6 +391,7 @@ class TMDBService:
         vote_count_min: int = 100,
         vote_average_min: Optional[float] = None,
         vote_average_max: Optional[float] = None,
+        first_air_date_gte: Optional[str] = None,
     ) -> Dict[Any, Any]:
         """
         Discover TV shows with filters (defaults to Indian region)
@@ -390,8 +399,16 @@ class TMDBService:
         params = {
             "sort_by": sort_by,
             "page": page,
-            "region": country if country else settings.INDIAN_REGION,
         }
+        
+        # Set region - required for provider filtering
+        if provider:
+            # When provider is set, watch_region is REQUIRED
+            params["watch_region"] = country if country else "US"  # Changed from INDIAN_REGION to US for global
+            params["with_watch_providers"] = provider
+        else:
+            # When no provider, use region for general results
+            params["region"] = country if country else settings.INDIAN_REGION
         
         if genre:
             params["with_genres"] = genre
@@ -399,9 +416,8 @@ class TMDBService:
             params["first_air_date_year"] = year
         if language:
             params["with_original_language"] = language
-        if provider:
-            params["with_watch_providers"] = provider
-            params["watch_region"] = country if country else settings.INDIAN_REGION
+        if first_air_date_gte:
+            params["first_air_date.gte"] = first_air_date_gte
         
         # Quality filters
         if vote_count_min:

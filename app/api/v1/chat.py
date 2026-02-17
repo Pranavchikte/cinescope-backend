@@ -19,6 +19,7 @@ class MovieCard(BaseModel):
     poster: str
     rating: float
     year: int
+    media_type: str = "movie"
 
 
 class ChatResponse(BaseModel):
@@ -27,7 +28,7 @@ class ChatResponse(BaseModel):
 
 
 @router.post("/ask", response_model=ChatResponse)
-def ask_chatbot(
+async def ask_chatbot(
     data: ChatRequest,
     current_user: User = Depends(get_verified_user),
     db: Session = Depends(get_db)
@@ -57,7 +58,7 @@ def ask_chatbot(
     if not data.query or len(data.query.strip()) < 3:
         raise HTTPException(status_code=400, detail="Query too short")
     
-    result = chat_service.ask(
+    result = await chat_service.ask(
         query=data.query,
         user_id=str(current_user.id),
         db=db

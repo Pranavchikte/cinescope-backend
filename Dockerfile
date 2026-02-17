@@ -14,7 +14,20 @@ RUN useradd -m -u 1000 appuser
 
 # Copy requirements
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+
+
+# Install CPU-only PyTorch first (prevents CUDA install)
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+# Install all dependencies EXCEPT sentence-transformers
+RUN grep -v "sentence-transformers" requirements.txt > req.txt \
+    && pip install --no-cache-dir -r req.txt
+
+# Install sentence-transformers WITHOUT heavy dependencies
+RUN pip install --no-cache-dir sentence-transformers==3.3.1 --no-deps
+
+
 
 # Copy application
 COPY . .

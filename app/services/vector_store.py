@@ -17,12 +17,28 @@ class VectorStore:
             )
         )
         
-        # Create or get collection
-        self.collection = self.client.get_or_create_collection(
-            name="movies",
-            metadata={"description": "Movie embeddings for RAG"}
-        )
+        # Ensure collection exists
+        self.collection = self._get_or_create_collection()
         logger.info(f"ChromaDB initialized. Collection size: {self.collection.count()}")
+    
+    def _get_or_create_collection(self):
+        """Get or create collection with error handling"""
+        try:
+            # Try to get existing collection first
+            return self.client.get_collection(name="movies")
+        except Exception:
+            # If doesn't exist, create new
+            try:
+                return self.client.create_collection(
+                    name="movies",
+                    metadata={"description": "Movie embeddings for RAG"}
+                )
+            except Exception as e:
+                logger.warning(f"Collection error: {e}")
+                return self.client.get_or_create_collection(
+                    name="movies",
+                    metadata={"description": "Movie embeddings for RAG"}
+                )
     
     def add_movies(self, movies: List[Dict[str, Any]]):
         """
@@ -68,10 +84,21 @@ class VectorStore:
         Search for similar movies/TV shows
         Returns: [{"id": 123, "title": "Inception", "media_type": "movie", ...}]
         """
-        results = self.collection.query(
-            query_texts=[query],
-            n_results=n_results
-        )
+        # Ensure collection exists before searching
+        try:
+            self.collection = self._get_or_create_collection()
+        except Exception as e:
+            logger.warning(f"Collection recreate failed: {e}")
+            return []
+        
+        try:
+            results = self.collection.query(
+                query_texts=[query],
+                n_results=n_results
+            )
+        except Exception as e:
+            logger.error(f"Search error: {e}")
+            return []
         
         # Format results
         items = []
@@ -91,8 +118,11 @@ class VectorStore:
     
     def reset(self):
         """Delete all movies (for re-indexing)"""
-        self.client.delete_collection("movies")
-        self.collection = self.client.get_or_create_collection(name="movies")
+        try:
+            self.client.delete_collection("movies")
+        except Exception:
+            pass  # Collection might not exist
+        self.collection = self._get_or_create_collection()
         logger.info("Vector store reset")
 
 
