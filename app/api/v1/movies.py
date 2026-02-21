@@ -19,21 +19,13 @@ async def get_trending_movies(time_window: str = Query("week", regex="^(day|week
     """Get trending movies (mixed Indian + international, Indian content boosted)"""
     return await tmdb_service.get_trending_movies(time_window)
 
-@router.get("/indian-trending")
-async def get_indian_trending_movies():
-    """
-    Get trending movies from multiple Indian languages
-    Returns: Categorized by language (Hindi, Tamil, Telugu, etc.)
-    """
-    return await tmdb_service.get_indian_trending_movies()
-
 @router.get("/new-releases")
-async def get_new_indian_releases():
+async def get_new_releases():
     """
-    Get recent Indian movie releases (last 30 days)
-    All Indian languages combined
+    Get recent movie releases (last 30 days)
+    Global releases
     """
-    return await tmdb_service.get_new_indian_releases_movies()
+    return await tmdb_service.get_new_releases_movies()
 
 @router.get("/popular")
 async def get_popular_movies():
@@ -50,7 +42,7 @@ async def get_movie_genres():
     return await tmdb_service.get_movie_genres()
 
 @router.get("/providers")
-async def get_watch_providers(region: str = Query("IN", description="ISO 3166-1 country code")):
+async def get_watch_providers(region: str = Query("US", description="ISO 3166-1 country code")):
     """Get list of streaming providers available in a region"""
     return await tmdb_service.get_watch_providers(region)
 

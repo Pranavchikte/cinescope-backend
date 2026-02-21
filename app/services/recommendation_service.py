@@ -30,17 +30,22 @@ class RecommendationService:
         
         rating_count = len(ratings)
         
+        user = db.query(User).filter(User.id == user_id).first()
+        pref_movie_genres = (user.preferred_movie_genres or []) if user else []
+        pref_languages = (user.preferred_languages or []) if user else []
+
         # NEW USER: No ratings or very few
         if rating_count < 5:
+            pref_genre_ids = ",".join(str(g) for g in pref_movie_genres) if pref_movie_genres else None
+            pref_language = pref_languages[0] if pref_languages else None
             results = await tmdb_service.discover_movies(
+                genre=pref_genre_ids,
+                language=pref_language,
                 sort_by="popularity.desc",
                 page=page,
                 vote_count_min=vote_count_min,
                 vote_average_min=vote_average_min
             )
-            # Boost Indian content even for new users
-            if "results" in results:
-                results["results"] = tmdb_service._boost_indian_content(results["results"], boost_factor=5.0)
             return results
         
         # Get rated movie IDs to exclude
@@ -52,6 +57,9 @@ class RecommendationService:
         # SOME RATINGS (5-19): Use top 2 genres
         if rating_count < 20:
             top_genres = favorite_genres[:2] if len(favorite_genres) >= 2 else favorite_genres
+            for g in pref_movie_genres:
+                if g not in top_genres:
+                    top_genres.append(g)
             genre_ids = ",".join(str(g) for g in top_genres)
             
             results = await tmdb_service.discover_movies(
@@ -64,6 +72,9 @@ class RecommendationService:
         # MANY RATINGS (20+): Full personalization
         else:
             top_genres = favorite_genres[:3] if len(favorite_genres) >= 3 else favorite_genres
+            for g in pref_movie_genres:
+                if g not in top_genres:
+                    top_genres.append(g)
             genre_ids = ",".join(str(g) for g in top_genres)
             
             results = await tmdb_service.discover_movies(
@@ -74,14 +85,31 @@ class RecommendationService:
                 vote_average_min=7.0  # Higher threshold for experienced users
             )
         
-        # Boost Indian content
         if "results" in results:
-            results["results"] = tmdb_service._boost_indian_content(results["results"], boost_factor=5.0)
             # Filter out already rated movies
             results["results"] = [
                 movie for movie in results["results"]
                 if movie["id"] not in rated_movie_ids
             ]
+
+        # Fallback: if too few results, relax filters
+        if "results" in results and len(results["results"]) < 8:
+            fallback = await tmdb_service.discover_movies(
+                sort_by="popularity.desc",
+                page=page,
+                vote_count_min=50,
+                vote_average_min=6.0
+            )
+            if "results" in fallback:
+                combined = results["results"] + fallback["results"]
+                seen = set()
+                deduped = []
+                for item in combined:
+                    if item.get("id") in rated_movie_ids or item.get("id") in seen:
+                        continue
+                    seen.add(item.get("id"))
+                    deduped.append(item)
+                results["results"] = deduped
         
         return results
     
@@ -103,18 +131,22 @@ class RecommendationService:
         ).all()
         
         rating_count = len(ratings)
+        user = db.query(User).filter(User.id == user_id).first()
+        pref_tv_genres = (user.preferred_tv_genres or []) if user else []
+        pref_languages = (user.preferred_languages or []) if user else []
         
         # NEW USER
         if rating_count < 5:
+            pref_genre_ids = ",".join(str(g) for g in pref_tv_genres) if pref_tv_genres else None
+            pref_language = pref_languages[0] if pref_languages else None
             results = await tmdb_service.discover_tv(
+                genre=pref_genre_ids,
+                language=pref_language,
                 sort_by="popularity.desc",
                 page=page,
                 vote_count_min=vote_count_min,
                 vote_average_min=vote_average_min
             )
-            # Boost Indian content even for new users
-            if "results" in results:
-                results["results"] = tmdb_service._boost_indian_content(results["results"], boost_factor=5.0)
             return results
         
         rated_tv_ids = {r.tmdb_id for r in ratings}
@@ -123,6 +155,9 @@ class RecommendationService:
         # SOME RATINGS
         if rating_count < 20:
             top_genres = favorite_genres[:2] if len(favorite_genres) >= 2 else favorite_genres
+            for g in pref_tv_genres:
+                if g not in top_genres:
+                    top_genres.append(g)
             genre_ids = ",".join(str(g) for g in top_genres)
             
             results = await tmdb_service.discover_tv(
@@ -135,6 +170,9 @@ class RecommendationService:
         # MANY RATINGS
         else:
             top_genres = favorite_genres[:3] if len(favorite_genres) >= 3 else favorite_genres
+            for g in pref_tv_genres:
+                if g not in top_genres:
+                    top_genres.append(g)
             genre_ids = ",".join(str(g) for g in top_genres)
             
             results = await tmdb_service.discover_tv(
@@ -145,14 +183,31 @@ class RecommendationService:
                 vote_average_min=7.0
             )
         
-        # Boost Indian content
         if "results" in results:
-            results["results"] = tmdb_service._boost_indian_content(results["results"], boost_factor=5.0)
             # Filter out already rated
             results["results"] = [
                 show for show in results["results"]
                 if show["id"] not in rated_tv_ids
             ]
+
+        # Fallback: if too few results, relax filters
+        if "results" in results and len(results["results"]) < 8:
+            fallback = await tmdb_service.discover_tv(
+                sort_by="popularity.desc",
+                page=page,
+                vote_count_min=50,
+                vote_average_min=6.0
+            )
+            if "results" in fallback:
+                combined = results["results"] + fallback["results"]
+                seen = set()
+                deduped = []
+                for item in combined:
+                    if item.get("id") in rated_tv_ids or item.get("id") in seen:
+                        continue
+                    seen.add(item.get("id"))
+                    deduped.append(item)
+                results["results"] = deduped
         
         return results
     

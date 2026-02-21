@@ -56,96 +56,35 @@ class TMDBService:
     
     def _boost_indian_content(self, results: List[Dict], boost_factor: float = 5.0) -> List[Dict]:
         """
-        Boost ranking of Indian language content in results
-        boost_factor: multiplier for Indian content popularity score
+        Deprecated: kept for backward compatibility. No-op for global mode.
         """
-        if not results:
-            return results
-        
-        for item in results:
-            original_language = item.get("original_language", "")
-            if original_language in settings.INDIAN_LANGUAGES:
-                # Boost popularity score for Indian content
-                if "popularity" in item:
-                    item["popularity"] = item["popularity"] * boost_factor
-                # Add flag for frontend
-                item["is_indian_content"] = True
-            else:
-                item["is_indian_content"] = False
-        
-        # Re-sort by boosted popularity
-        results.sort(key=lambda x: x.get("popularity", 0), reverse=True)
         return results
     
     # Movies
     async def get_trending_movies(self, time_window: str = "week") -> Dict[Any, Any]:
-        """Get trending movies with Indian content boosted"""
-        data = await self._make_request(f"/trending/movie/{time_window}", {"region": settings.INDIAN_REGION}, cache_ttl=3600)
-    
-    # Boost Indian content in results
-        if "results" in data:
-            data["results"] = self._boost_indian_content(data["results"], boost_factor=5.0)
+        """Get trending movies (global default region)"""
+        data = await self._make_request(f"/trending/movie/{time_window}", {"region": settings.DEFAULT_REGION}, cache_ttl=3600)
         return data
     
-    async def get_indian_trending_movies(self) -> Dict[Any, Any]:
-        """
-        Get trending movies from multiple Indian languages
-        Returns categorized results by language
-        """
-        results_by_language = {}
-        
-        # Fetch trending for each Indian language
-        for lang in settings.INDIAN_LANGUAGES[:6]:  # Top 6 languages for performance
-            lang_data = await self.discover_movies(
-                language=lang,
-                country=settings.INDIAN_REGION,
-                sort_by="popularity.desc",
-                page=1,
-                vote_count_min=100
-            )
-            
-            if "results" in lang_data and lang_data["results"]:
-                results_by_language[lang] = lang_data["results"][:10]  # Top 10 per language
-        
-        return {
-            "results_by_language": results_by_language,
-            "languages": {
-                "hi": "Hindi",
-                "mr": "Marathi",
-                "ta": "Tamil",
-                "te": "Telugu",
-                "pa": "Punjabi",
-                "ml": "Malayalam"
-            }
-        }
-    
-    async def get_new_indian_releases_movies(self) -> Dict[Any, Any]:
-        """Get recent Indian movie releases (last 30 days)"""
+    async def get_new_releases_movies(self) -> Dict[Any, Any]:
+        """Get recent movie releases (last 30 days) - global"""
         today = datetime.now()
         thirty_days_ago = today - timedelta(days=30)
         
-        # Combine all Indian languages
-        indian_langs = ",".join(settings.INDIAN_LANGUAGES)
-        
         params = {
-            "with_original_language": indian_langs,
-            "region": settings.INDIAN_REGION,
             "primary_release_date.gte": thirty_days_ago.strftime("%Y-%m-%d"),
             "primary_release_date.lte": today.strftime("%Y-%m-%d"),
             "sort_by": "primary_release_date.desc",
-            "vote_count.gte": 50,  # Lower threshold for new releases
-            "page": 1
+            "vote_count.gte": 50,
+            "page": 1,
+            "region": settings.DEFAULT_REGION,
         }
         
-        return await self._make_request("/discover/movie", params, cache_ttl=1800)  # 30min cache
+        return await self._make_request("/discover/movie", params, cache_ttl=1800)
     
     async def get_popular_movies(self) -> Dict[Any, Any]:
-        """Get popular movies with Indian content boosted"""
-        data = await self._make_request("/movie/popular", {"region": settings.INDIAN_REGION}, cache_ttl=3600)
-    
-        if "results" in data:
-            data["results"] = self._boost_indian_content(data["results"], boost_factor=5.0)
-    
+        """Get popular movies (global default region)"""
+        data = await self._make_request("/movie/popular", {"region": settings.DEFAULT_REGION}, cache_ttl=3600)
         return data
     
     async def search_movies(self, query: str) -> Dict[Any, Any]:
@@ -225,11 +164,11 @@ class TMDBService:
         # Set region - required for provider filtering
         if provider:
             # When provider is set, watch_region is REQUIRED
-            params["watch_region"] = country if country else "US"  # Changed from INDIAN_REGION to US for global
+            params["watch_region"] = country if country else settings.DEFAULT_REGION
             params["with_watch_providers"] = provider
         else:
             # When no provider, use region for general results
-            params["region"] = country if country else settings.INDIAN_REGION
+            params["region"] = country if country else settings.DEFAULT_REGION
         
         if genre:
             params["with_genres"] = genre
@@ -256,71 +195,29 @@ class TMDBService:
     
     # TV Shows
     async def get_trending_tv(self, time_window: str = "week") -> Dict[Any, Any]:
-        """Get trending TV shows with Indian content boosted"""
-        data = await self._make_request(f"/trending/tv/{time_window}", {"region": settings.INDIAN_REGION}, cache_ttl=3600)
-        
-        if "results" in data:
-            data["results"] = self._boost_indian_content(data["results"])
-        
+        """Get trending TV shows (global default region)"""
+        data = await self._make_request(f"/trending/tv/{time_window}", {"region": settings.DEFAULT_REGION}, cache_ttl=3600)
         return data
     
-    async def get_indian_trending_tv(self) -> Dict[Any, Any]:
-        """
-        Get trending TV shows from multiple Indian languages
-        Returns categorized results by language
-        """
-        results_by_language = {}
-        
-        for lang in settings.INDIAN_LANGUAGES[:6]:
-            lang_data = await self.discover_tv(
-                language=lang,
-                country=settings.INDIAN_REGION,
-                sort_by="popularity.desc",
-                page=1,
-                vote_count_min=100
-            )
-            
-            if "results" in lang_data and lang_data["results"]:
-                results_by_language[lang] = lang_data["results"][:10]
-        
-        return {
-            "results_by_language": results_by_language,
-            "languages": {
-                "hi": "Hindi",
-                "mr": "Marathi",
-                "ta": "Tamil",
-                "te": "Telugu",
-                "pa": "Punjabi",
-                "ml": "Malayalam"
-            }
-        }
-    
-    async def get_new_indian_releases_tv(self) -> Dict[Any, Any]:
-        """Get recent Indian TV show releases (last 30 days)"""
+    async def get_new_releases_tv(self) -> Dict[Any, Any]:
+        """Get recent TV show releases (last 30 days) - global"""
         today = datetime.now()
         thirty_days_ago = today - timedelta(days=30)
         
-        indian_langs = ",".join(settings.INDIAN_LANGUAGES)
-        
         params = {
-            "with_original_language": indian_langs,
-            "region": settings.INDIAN_REGION,
             "first_air_date.gte": thirty_days_ago.strftime("%Y-%m-%d"),
             "first_air_date.lte": today.strftime("%Y-%m-%d"),
             "sort_by": "first_air_date.desc",
             "vote_count.gte": 50,
-            "page": 1
+            "page": 1,
+            "region": settings.DEFAULT_REGION,
         }
         
         return await self._make_request("/discover/tv", params, cache_ttl=1800)
     
     async def get_popular_tv(self) -> Dict[Any, Any]:
-        """Get popular TV shows with Indian content boosted"""
-        data = await self._make_request("/tv/popular", {"region": settings.INDIAN_REGION}, cache_ttl=3600)
-        
-        if "results" in data:
-            data["results"] = self._boost_indian_content(data["results"])
-        
+        """Get popular TV shows (global default region)"""
+        data = await self._make_request("/tv/popular", {"region": settings.DEFAULT_REGION}, cache_ttl=3600)
         return data
     
     async def get_tv_details(self, tv_id: int) -> Dict[Any, Any]:
@@ -404,11 +301,11 @@ class TMDBService:
         # Set region - required for provider filtering
         if provider:
             # When provider is set, watch_region is REQUIRED
-            params["watch_region"] = country if country else "US"  # Changed from INDIAN_REGION to US for global
+            params["watch_region"] = country if country else settings.DEFAULT_REGION
             params["with_watch_providers"] = provider
         else:
             # When no provider, use region for general results
-            params["region"] = country if country else settings.INDIAN_REGION
+            params["region"] = country if country else settings.DEFAULT_REGION
         
         if genre:
             params["with_genres"] = genre
@@ -437,10 +334,10 @@ class TMDBService:
         return await self._make_request("/genre/tv/list", cache_ttl=86400)
     
     # Watch Providers
-    async def get_watch_providers(self, region: str = "IN") -> Dict[Any, Any]:
+    async def get_watch_providers(self, region: str = "US") -> Dict[Any, Any]:
         """
         Get list of available watch providers for a region
-        region: ISO 3166-1 country code (default: IN for India)
+        region: ISO 3166-1 country code (default: US)
         """
         return await self._make_request(f"/watch/providers/movie?watch_region={region}", cache_ttl=86400)
     

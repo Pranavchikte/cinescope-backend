@@ -21,10 +21,11 @@
 
 | Feature | Technical Implementation |
 |---------|--------------------------|
-| **AI Chat Recommendations** | Google Gemini integration with vector embeddings for semantic search |
-| **Personalized Recommendations** | Collaborative filtering based on user ratings & viewing history |
+| **AI Chat Recommendations** | Google Gemini + vector search with Redis caching |
+| **Personalized Recommendations** | Ratings + taste profile onboarding |
+| **Cross-Device Continue** | Last-viewed tracking across devices |
 | **Creator Profiles** | Public rating profiles with shareable links |
-| **Indian Content Focus** | Multi-language support (Hindi, Tamil, Telugu, Malayalam, etc.) |
+| **Global Discovery** | Worldwide catalog with US defaults and language-aware recommendations |
 | **Real-time Sync** | Watchlist & ratings synchronized across devices |
 | **Performance First** | Redis caching with sub-100ms API response times |
 
@@ -203,12 +204,14 @@ curl http://localhost:8000/health
 | POST | `/api/v1/auth/verify-email` | Email verification |
 | POST | `/api/v1/auth/forgot-password` | Password reset request |
 | GET | `/api/v1/auth/me` | Current user profile |
+| PATCH | `/api/v1/auth/last-viewed` | Update last viewed title |
+| PATCH | `/api/v1/auth/taste-profile` | Update taste preferences |
 
 ### Movies & TV
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/v1/movies/trending` | Trending movies |
-| GET | `/api/v1/movies/indian-trending` | Indian regional content |
+| GET | `/api/v1/movies/new-releases` | New releases (global) |
 | GET | `/api/v1/movies/popular` | Popular movies |
 | GET | `/api/v1/movies/search` | Search movies |
 | GET | `/api/v1/movies/discover` | Filtered discovery |
@@ -229,7 +232,7 @@ curl http://localhost:8000/health
 ### AI Features
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/chat/message` | AI chat for recommendations |
+| POST | `/api/v1/chat/ask` | AI chat for recommendations |
 | GET | `/api/v1/creators/{username}/ratings` | Public creator profiles |
 
 ---

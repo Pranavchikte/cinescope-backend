@@ -5,6 +5,7 @@ from app.core.database import get_db
 from app.api.deps import get_verified_user
 from app.models.user import User
 from app.services.chat_service import chat_service
+from app.services.vector_store import vector_store
 
 router = APIRouter()
 
@@ -65,3 +66,13 @@ async def ask_chatbot(
     )
     
     return result
+
+
+@router.post("/warmup")
+async def warmup_chat():
+    """Warm up vector store/model to avoid first-request latency."""
+    try:
+        vector_store.search("warmup", n_results=1)
+    except Exception:
+        pass
+    return {"status": "ok"}
