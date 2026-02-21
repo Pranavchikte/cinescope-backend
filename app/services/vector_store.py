@@ -78,6 +78,23 @@ class VectorStore:
         )
         
         logger.info(f"Added {len(movies)} items to vector store")
+
+    def get_existing_ids(self, ids: List[str]) -> set[str]:
+        """Return IDs that already exist in the collection."""
+        existing = set()
+        if not ids:
+            return existing
+
+        try:
+            for i in range(0, len(ids), 100):
+                chunk = ids[i:i + 100]
+                result = self.collection.get(ids=chunk)
+                for item_id in result.get("ids", []):
+                    existing.add(item_id)
+        except Exception as e:
+            logger.warning(f"Failed to check existing ids: {e}")
+
+        return existing
     
     def search(self, query: str, n_results: int = 5) -> List[Dict[str, Any]]:
         """

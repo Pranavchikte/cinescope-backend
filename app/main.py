@@ -1,5 +1,6 @@
 import logging
 import time
+import asyncio
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -36,6 +37,13 @@ async def startup_event():
     logger.info(f"Log Level: {settings.LOG_LEVEL}")
     logger.info(f"CORS Origins: {settings.ALLOWED_ORIGINS}")
     logger.info("="*50)
+    # Warm up vector store/model to reduce first chat latency
+    try:
+        from app.services.vector_store import vector_store
+        await asyncio.to_thread(vector_store.search, "warmup", 1)
+        logger.info("Chat warmup complete")
+    except Exception as e:
+        logger.warning(f"Chat warmup failed: {e}")
 
 # Shutdown event
 @app.on_event("shutdown")

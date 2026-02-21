@@ -1,10 +1,11 @@
-from sqlalchemy import Column, String, Boolean, DateTime, Enum as SQLEnum
+from sqlalchemy import Column, String, Boolean, DateTime, Enum as SQLEnum, Integer, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
 import enum
 from app.core.database import Base
 from app.models.base import TimeStampMixin
+from app.models.watchlist import MediaType
 
 class UserRole(str, enum.Enum):
     admin = "admin"
@@ -22,6 +23,13 @@ class User(Base, TimeStampMixin):
     email_verified_at = Column(DateTime, nullable=True)
     role = Column(SQLEnum(UserRole), default=UserRole.user, nullable=False)
     is_public_profile = Column(Boolean, default=True, nullable=False)
+    last_viewed_tmdb_id = Column(Integer, nullable=True)
+    last_viewed_media_type = Column(SQLEnum(MediaType), nullable=True)
+    last_viewed_at = Column(DateTime, nullable=True)
+    preferred_movie_genres = Column(JSON, nullable=True)
+    preferred_tv_genres = Column(JSON, nullable=True)
+    preferred_languages = Column(JSON, nullable=True)
+    taste_onboarded = Column(Boolean, default=False, nullable=False)
     
     # Relationships
     watchlist = relationship("Watchlist", back_populates="user", cascade="all, delete-orphan")

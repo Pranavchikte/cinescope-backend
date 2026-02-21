@@ -19,21 +19,13 @@ async def get_trending_tv(time_window: str = Query("week", regex="^(day|week)$")
     """Get trending TV shows (mixed Indian + international, Indian content boosted)"""
     return await tmdb_service.get_trending_tv(time_window)
 
-@router.get("/indian-trending")
-async def get_indian_trending_tv():
-    """
-    Get trending TV shows from multiple Indian languages
-    Returns: Categorized by language (Hindi, Tamil, Telugu, etc.)
-    """
-    return await tmdb_service.get_indian_trending_tv()
-
 @router.get("/new-releases")
-async def get_new_indian_releases_tv():
+async def get_new_releases_tv():
     """
-    Get recent Indian TV show releases (last 30 days)
-    All Indian languages combined
+    Get recent TV show releases (last 30 days)
+    Global releases
     """
-    return await tmdb_service.get_new_indian_releases_tv()
+    return await tmdb_service.get_new_releases_tv()
 
 @router.get("/popular")
 async def get_popular_tv():
@@ -50,7 +42,7 @@ async def get_tv_genres():
     return await tmdb_service.get_tv_genres()
 
 @router.get("/providers")
-async def get_watch_providers(region: str = Query("IN", description="ISO 3166-1 country code")):
+async def get_watch_providers(region: str = Query("US", description="ISO 3166-1 country code")):
     """Get list of streaming providers available in a region"""
     return await tmdb_service.get_watch_providers(region)
 

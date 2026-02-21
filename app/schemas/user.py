@@ -1,8 +1,9 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 import uuid
 import re
+from app.models.watchlist import MediaType
 
 class UserCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
@@ -41,12 +42,28 @@ class UserResponse(BaseModel):
     role: str
     is_public_profile: bool
     created_at: datetime
+    last_viewed_tmdb_id: Optional[int] = None
+    last_viewed_media_type: Optional[MediaType] = None
+    last_viewed_at: Optional[datetime] = None
+    preferred_movie_genres: Optional[List[int]] = None
+    preferred_tv_genres: Optional[List[int]] = None
+    preferred_languages: Optional[List[str]] = None
+    taste_onboarded: bool
     
     class Config:
         from_attributes = True
 
 class UserProfileUpdate(BaseModel):
     is_public_profile: Optional[bool] = None
+
+class LastViewedUpdate(BaseModel):
+    tmdb_id: int
+    media_type: MediaType
+
+class TasteProfileUpdate(BaseModel):
+    preferred_movie_genres: Optional[List[int]] = None
+    preferred_tv_genres: Optional[List[int]] = None
+    preferred_languages: Optional[List[str]] = None
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr

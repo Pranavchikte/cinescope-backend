@@ -8,6 +8,8 @@ from app.core.config import settings
 from app.services.vector_store import vector_store
 from app.services.tmdb import tmdb_service
 from app.models.rating import Rating, RatingValue
+from app.services.cache import cache_service
+import hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +25,14 @@ class ChatService:
         Main RAG pipeline
         Returns: {"response": "text...", "movies": [...]}
         """
+        query_clean = query.strip()
+        cache_key = f"chat:{user_id}:{hashlib.sha256(query_clean.lower().encode()).hexdigest()}"
+        cached = cache_service.get(cache_key)
+        if cached:
+            return cached
         
         # Determine if user is asking about TV shows or movies
-        query_lower = query.lower()
+        query_lower = query_clean.lower()
         prefer_tv = any(word in query_lower for word in ['tv show', 'tv series', 'series', 'watching', 'tv', 'netflix series', 'amazon series', 'show like'])
         prefer_movie = any(word in query_lower for word in ['movie', 'film', 'watch', 'cinema', 'movie like', 'film like'])
         
@@ -38,7 +45,7 @@ class ChatService:
             preferred_type = None  # Mixed or unclear - return both
         
         # Step 1: Search vector store with more results to filter
-        search_results = vector_store.search(query, n_results=10)
+        search_results = vector_store.search(query_clean, n_results=12)
         
         # Step 2: Filter by preferred media type if applicable
         if preferred_type:
@@ -81,7 +88,7 @@ class ChatService:
         user_context = self._get_user_context(user_id, db)
         
         # Step 5: Build prompt with media type context
-        prompt = self._build_prompt(query, user_context, similar_movies[:5], preferred_type)
+        prompt = self._build_prompt(query_clean, user_context, similar_movies[:8], preferred_type)
         
         # Step 6: Get response from Gemini
         try:
@@ -91,10 +98,12 @@ class ChatService:
             logger.error(f"Gemini API error: {e}")
             answer = "Sorry, I couldn't process your request. Please try again."
         
-        return {
+        result = {
             "response": answer,
-            "movies": similar_movies[:5]  # Return top 5
+            "movies": similar_movies[:8]  # Return top 8
         }
+        cache_service.set(cache_key, result, ttl=600)
+        return result
     
     def _is_abbreviation_match(self, query: str, title: str) -> bool:
         """Check if query is an abbreviation of title (e.g., 'got' = 'game of thrones')"""

@@ -14,7 +14,7 @@ from app.models.user import User
 from app.schemas.user import (
     UserCreate, UserLogin, UserResponse, 
     ForgotPasswordRequest, ResetPasswordRequest, 
-    MessageResponse, UserProfileUpdate
+    MessageResponse, UserProfileUpdate, LastViewedUpdate, TasteProfileUpdate
 )
 from app.schemas.token import Token
 from app.services.email import email_service
@@ -246,6 +246,39 @@ def update_profile(
             )
         current_user.is_public_profile = data.is_public_profile
     
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+@router.patch("/last-viewed", response_model=UserResponse)
+def update_last_viewed(
+    data: LastViewedUpdate,
+    current_user: User = Depends(get_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Update the user's last viewed title (for cross-device continue)."""
+    current_user.last_viewed_tmdb_id = data.tmdb_id
+    current_user.last_viewed_media_type = data.media_type
+    current_user.last_viewed_at = datetime.utcnow()
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+@router.patch("/taste-profile", response_model=UserResponse)
+def update_taste_profile(
+    data: TasteProfileUpdate,
+    current_user: User = Depends(get_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Update user's taste profile preferences."""
+    if data.preferred_movie_genres is not None:
+        current_user.preferred_movie_genres = data.preferred_movie_genres
+    if data.preferred_tv_genres is not None:
+        current_user.preferred_tv_genres = data.preferred_tv_genres
+    if data.preferred_languages is not None:
+        current_user.preferred_languages = data.preferred_languages
+
+    current_user.taste_onboarded = True
     db.commit()
     db.refresh(current_user)
     return current_user
