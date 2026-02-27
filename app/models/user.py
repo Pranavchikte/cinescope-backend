@@ -35,3 +35,4 @@ class User(Base, TimeStampMixin):
     watchlist = relationship("Watchlist", back_populates="user", cascade="all, delete-orphan")
     ratings = relationship("Rating", back_populates="user", cascade="all, delete-orphan")
     creator_requests = relationship("CreatorRequest", foreign_keys="CreatorRequest.user_id", back_populates="user", cascade="all, delete-orphan")
+    watch_history = relationship("WatchHistory", back_populates="user", cascade="all, delete-orphan")
