@@ -14,14 +14,14 @@ class TMDBService:
         self.api_key = settings.TMDB_API_KEY
     
     async def _make_request(self, endpoint: str, params: Optional[Dict] = None, cache_ttl: int = 3600) -> Dict[Any, Any]:
-        cache_key = f"tmdb:{endpoint}:{str(params)}"
+        if params is None:
+            params = {}
+        cache_key = f"tmdb:{endpoint}:{self._serialize_params(params)}"
         
         cached_data = cache_service.get(cache_key)
         if cached_data:
             return cached_data
         
-        if params is None:
-            params = {}
         params["api_key"] = self.api_key
         
         try:
@@ -53,6 +53,13 @@ class TMDBService:
             if cached_data:
                 return cached_data
             return {"error": "Service unavailable", "results": []}
+
+    def _serialize_params(self, params: Dict[str, Any]) -> str:
+        """Stable cache key serialization."""
+        try:
+            return "&".join(f"{k}={params[k]}" for k in sorted(params.keys()))
+        except Exception:
+            return str(params)
     
     def _boost_indian_content(self, results: List[Dict], boost_factor: float = 5.0) -> List[Dict]:
         """

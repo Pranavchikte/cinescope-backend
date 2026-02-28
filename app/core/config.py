@@ -24,7 +24,10 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str
     FRONTEND_URL: str = "http://localhost:3000"
     LOG_LEVEL: str = "INFO"
-    
+
+    # Vector store
+    CHROMA_PATH: str = "/app/chroma_data"
+
     # Email
     SENDGRID_API_KEY: str
     EMAIL_FROM: str = "noreply@cinescopes.app"

@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1 import auth, movies, tv, watchlist, ratings, creator_requests, creators, people, chat
+from app.api.v1 import auth, movies, tv, watchlist, ratings, creator_requests, creators, people, chat, vidsrc, watch_history
 
 api_router = APIRouter()
 
@@ -12,3 +12,5 @@ api_router.include_router(creator_requests.router, prefix="/creator-requests", t
 api_router.include_router(creators.router, prefix="/creators", tags=["creators"])
 api_router.include_router(people.router, prefix="/people", tags=["people"])
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
+api_router.include_router(vidsrc.router, prefix="/vidsrc", tags=["vidsrc"])
+api_router.include_router(watch_history.router, prefix="/watch-history", tags=["watch-history"])

@@ -2,6 +2,7 @@ import chromadb
 from chromadb.config import Settings
 import logging
 from typing import List, Dict, Any
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -10,7 +11,7 @@ class VectorStore:
     def __init__(self):
         """Initialize ChromaDB client"""
         self.client = chromadb.PersistentClient(
-            path="/app/chroma_data",
+            path=settings.CHROMA_PATH,
             settings=Settings(
                 anonymized_telemetry=False,
                 allow_reset=True

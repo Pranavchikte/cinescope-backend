@@ -77,7 +77,7 @@
 | **AI/LLM** | Google Gemini Pro | Contextual recommendations, conversational UI |
 | **Vector DB** | In-memory embeddings | Semantic movie search |
 | **Auth** | JWT + Redis | Stateless, secure, refresh tokens |
-| **Email** | Resend | Developer-friendly, reliable delivery |
+| **Email** | SendGrid | Developer-friendly, reliable delivery |
 | **Container** | Docker + Compose | Reproducible environments |
 
 ---
@@ -167,7 +167,7 @@ backend/
 - Docker & Docker Compose
 - Python 3.11+ (for local development)
 - TMDB API Key: https://www.themoviedb.org/settings/api
-- Resend API Key: https://resend.com/api-keys
+- SendGrid API Key: https://sendgrid.com
 
 ### Running Locally
 
@@ -272,7 +272,8 @@ curl http://localhost:8000/health
 | `REDIS_URL` | Redis connection string | Yes |
 | `SECRET_KEY` | JWT signing key (generate with `openssl rand -hex 32`) | Yes |
 | `TMDB_API_KEY` | TMDB API key | Yes |
-| `RESEND_API_KEY` | Resend API key for emails | Yes |
+| `SENDGRID_API_KEY` | SendGrid API key for emails | Yes |
+| `EMAIL_FROM` | From address for SendGrid emails | Yes |
 | `FRONTEND_URL` | Frontend URL for email links | Yes |
 | `ALLOWED_ORIGINS` | CORS allowed origins | Yes |
 
