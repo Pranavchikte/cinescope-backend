@@ -3,7 +3,7 @@ from typing import Optional
 from datetime import datetime
 
 class WatchHistoryCreate(BaseModel):
-    movie_id: int
+    movie_id: Optional[int] = None
     tv_show_id: Optional[int] = None
     season_number: Optional[int] = None
     episode_number: Optional[int] = None

@@ -42,7 +42,7 @@ def verify_refresh_token(token: str) -> Optional[str]:
         return user_id
     except jwt.ExpiredSignatureError:
         return None
-    except jwt.JWTError:
+    except jwt.PyJWTError:
         return None
 
 def create_password_reset_token(email: str) -> str:
@@ -63,7 +63,7 @@ def verify_password_reset_token(token: str) -> Optional[str]:
         return email
     except jwt.ExpiredSignatureError:
         return None
-    except jwt.JWTError:
+    except jwt.PyJWTError:
         return None
     
 def create_email_verification_token(email: str) -> str:
@@ -84,5 +84,5 @@ def verify_email_verification_token(token: str) -> Optional[str]:
         return email
     except jwt.ExpiredSignatureError:
         return None
-    except jwt.JWTError:
+    except jwt.PyJWTError:
         return None

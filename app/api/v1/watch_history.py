@@ -21,11 +21,25 @@ async def create_watch_history(watch_data: WatchHistoryCreate, db: Session = Dep
     This endpoint tracks user's watch progress for movies/TV shows.
     """
     try:
+        if not watch_data.movie_id and not watch_data.tv_show_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="movie_id or tv_show_id is required"
+            )
+
         # Check if existing entry exists
-        existing_entry = db.query(WatchHistory).filter(
-            WatchHistory.user_id == current_user.id,
-            WatchHistory.movie_id == watch_data.movie_id
-        ).first()
+        if watch_data.movie_id:
+            existing_entry = db.query(WatchHistory).filter(
+                WatchHistory.user_id == current_user.id,
+                WatchHistory.movie_id == watch_data.movie_id
+            ).first()
+        else:
+            existing_entry = db.query(WatchHistory).filter(
+                WatchHistory.user_id == current_user.id,
+                WatchHistory.tv_show_id == watch_data.tv_show_id,
+                WatchHistory.season_number == watch_data.season_number,
+                WatchHistory.episode_number == watch_data.episode_number
+            ).first()
         
         if existing_entry:
             # Update existing entry

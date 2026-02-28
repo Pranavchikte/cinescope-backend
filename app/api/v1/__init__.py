@@ -14,6 +14,3 @@ api_router.include_router(people.router, prefix="/people", tags=["people"])
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
 api_router.include_router(vidsrc.router, prefix="/vidsrc", tags=["vidsrc"])
 api_router.include_router(watch_history.router, prefix="/watch-history", tags=["watch-history"])
-
-# Include TV endpoints for Vidsrc TV support
-api_router.include_router(tv.router, prefix="/tv", tags=["tv"])

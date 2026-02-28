@@ -10,7 +10,7 @@ class WatchHistory(Base):
     
     id = Column(UUIDType, primary_key=True, default=uuid.uuid4)
     user_id = Column(UUIDType, ForeignKey("users.id"), nullable=False)
-    movie_id = Column(Integer, nullable=False)
+    movie_id = Column(Integer, nullable=True)
     tv_show_id = Column(Integer, nullable=True)  # For future TV show support
     season_number = Column(Integer, nullable=True)
     episode_number = Column(Integer, nullable=True)
